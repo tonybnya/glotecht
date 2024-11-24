@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+results.html
+search.js
+animate.js
+
+# Virtual environment
+.venv
+venv
+
+__pycache__/
+.pytest_cache/
+
+node_modules/
+dist/
+dist-ssr/
+instance/
+migrations/
+fiches/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
