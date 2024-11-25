@@ -40,8 +40,7 @@ class User(db.Model, UserMixin):
         Input:  self (User) | the User instance
         Output: the string representation of the user.
         """
-        return f"User ID: {self.uid} - Username: {self.username} - Email: {self.email} - Role: {self.role}"
-
+        return f"User ID: {self.id} - Username: {self.username} - Email: {self.email}"
 
     def get_id(self) -> int:
         """
@@ -50,22 +49,19 @@ class User(db.Model, UserMixin):
         Input: self (User) | the User instance
         Output: the ID of the user.
         """
-        return self.uid
+        return self.id
 
     def to_dict(self) -> Dict[str, Any]:
         """
         Converts models for easier JSON serialization.
 
-        Input:  model (User) | the instance of the User
-        Output: a dictionary representing the model
+        Input:  self (User) | the User instance
+        Output: a dictionary representation of the user.
         """
         return {
-            "uid": self.uid,
-            # separator
+            "id": self.id,
             "username": self.username,
-            "email": self.email,
-            "password": self.password,
-            "role": self.role
+            "email": self.email
         }
 
 
