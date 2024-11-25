@@ -24,11 +24,10 @@ class User(db.Model, UserMixin):
     # Define the name of the table in the database
     __tablename__ = "users"
 
-    uid: int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id: int = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username: str = db.Column(db.String, nullable=False)
     email: str = db.Column(db.String, nullable=False)
     password: str = db.Column(db.String, nullable=False)
-    role: str = db.Column(db.String, nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint("username", "email", name="unique_terms"),
