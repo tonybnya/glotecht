@@ -4,92 +4,228 @@ This file defines the routes/endpoints for the API.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Tuple, Union
+from functools import wraps
+from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
-from flask import Flask, Response, jsonify, render_template, request
-from flask_admin import Admin
+from flask import Flask, Response, jsonify, render_template, request, redirect, url_for, flash
+from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_cors import cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from flask_login import current_user, login_required, login_user, logout_user
+from flask_bcrypt import Bcrypt
 
 from models import Term, User
 
 
-def register_routes(app: Flask, db: SQLAlchemy):
-    """
-    Define and register the routes/endpoints of the API,
-    including the Flask-Admin interface.
-    """
-    # Initialize Flask-Admin
-    admin = Admin(app, name="Admin Panel", template_mode='bootstrap4')
-
-    # Add a view for the Term model
-    admin.add_view(ModelView(Term, db.session))
-
-    # Add a view for the User model
-    admin.add_view(ModelView(User, db.session))
+def admin_required(f: Callable) -> Callable:
+    """Decorator to require admin access for a route."""
+    @wraps(f)
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+        if not current_user.is_authenticated:
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
+class SecureAdminIndexView(AdminIndexView):
+    """Secure admin index that requires authentication."""
+    
+    @expose('/')
+    @admin_required
+    def index(self):
+        return super().index()
+
+
+class SecureModelView(ModelView):
+    """Base secure model view that requires authentication."""
+    
+    def is_accessible(self) -> bool:
+        return current_user.is_authenticated
+
+    def inaccessible_callback(self, name: str, **kwargs: Any) -> Response:
+        return redirect(url_for('login', next=request.url))
+
+
+class UserAdminView(SecureModelView):
+    """Admin interface for User model."""
+    column_list = ['id', 'username', 'email']
+    column_searchable_list = ['username', 'email']
+    form_excluded_columns = ['password']
+    can_create = True
+    can_edit = True
+    can_delete = True
+    page_size = 50
+
+    def on_model_change(self, form: Any, model: User, is_created: bool) -> None:
+        """Hash password when creating/editing users through admin."""
+        if is_created or form.password.data:
+            model.password = Bcrypt().generate_password_hash(
+                form.password.data.encode('utf-8')
+            ).decode('utf-8')
+
+
+class TermAdminView(SecureModelView):
+    """Admin interface for Term model."""
+    column_list = ['tid', 'english_term', 'french_term', 'domain_en', 'domain_fr']
+    column_searchable_list = ['english_term', 'french_term']
+    column_filters = ['domain_en', 'domain_fr']
+    can_create = True
+    can_edit = True
+    can_delete = True
+    page_size = 50
+
+
+def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
+    """Register all routes and admin views."""
+    
+    # Initialize Flask-Admin with secure index
+    admin = Admin(
+        app,
+        name="GloTechT Admin",
+        template_mode='bootstrap4',
+        index_view=SecureAdminIndexView()
+    )
+
+    # Add secure model views
+    admin.add_view(UserAdminView(User, db.session, name='Administrators'))
+    admin.add_view(TermAdminView(Term, db.session, name='Terms'))
+
+    # Public routes
     @app.route("/")
-    def index() -> Tuple[Response, Literal[200]]:
-        """
-        Define the endpoint for the landing page.
-
-        Input:  Nothing
-        Output: the template of the index page.
-        """
+    def index() -> str:
+        """Landing page."""
         return render_template("index.html")
 
-    @app.route("/contact")
-    def contact() -> Tuple[Response, Literal[200]]:
-        """
-        Define the endpoint for the contact page.
-
-        Input:  Nothing
-        Output: the template of the contact page.
-        """
-        return render_template("contact.html")
-
     @app.route("/glossary")
-    def glossary() -> Tuple[Response, Literal[200]]:
-        """
-        Define the endpoint for the glossary page.
-
-        Input:  Nothing
-        Output: the template of the glossary page.
-        """
+    def glossary() -> str:
+        """Glossary page."""
         return render_template("glossary.html")
 
-    @app.route("/signup")
-    def signup() -> Tuple[Response, Literal[200]]:
-        """
-        Define the endpoint for the signup page.
+    @app.route("/contact")
+    def contact() -> str:
+        """Contact page."""
+        return render_template("contact.html")
 
-        Input:  Nothing
-        Output: the template of the signup page.
-        """
-        return render_template("signup.html")
+    @app.route("/api/terms/search", methods=["GET"])
+    @cross_origin()
+    def search_terms() -> Tuple[Response, int]:
+        """Public API endpoint for searching terms."""
+        query = request.args.get("q", "").lower()
+        if not query:
+            return jsonify([]), 200
 
-    @app.route("/login")
-    def login() -> Tuple[Response, Literal[200]]:
-        """
-        Define the endpoint for the login page.
+        try:
+            terms = Term.query.all()
+            results = []
+            
+            for term in terms:
+                if (query in term.english_term.lower() or 
+                    query in term.french_term.lower() or
+                    query in term.domain_en.lower() or
+                    query in term.domain_fr.lower()):
+                    results.append(term.to_dict())
+            
+            return jsonify(results), 200
+            
+        except Exception as e:
+            app.logger.error(f"Search error: {str(e)}")
+            return jsonify({"error": "An error occurred during search"}), 500
 
-        Input:  Nothing
-        Output: the template of the login page.
-        """
-        return render_template("login.html")
+    # Admin-only routes
+    @app.route("/login", methods=["GET", "POST"])
+    def login() -> Union[str, Response]:
+        """Admin login page."""
+        if current_user.is_authenticated:
+            return redirect(url_for('admin.index'))
 
-    @app.errorhandler(404)
-    def page_not_found(e):
-        """
-        Define the endpoint for the glossary page.
+        if request.method == "GET":
+            return render_template("login.html")
+        
+        email = request.form.get("email")
+        password = request.form.get("password")
 
-        Input:  e   | an error
-        Output: the template of the glossary page.
-        """
-        return render_template("404.html"), 404
+        if not email or not password:
+            flash("Email et mot de passe requis", "error")
+            return render_template("login.html"), 400
+
+        try:
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                flash("Email ou mot de passe incorrect", "error")
+                return render_template("login.html"), 401
+
+            password_bytes = password.encode('utf-8')
+            if bcrypt.check_password_hash(user.password, password_bytes):
+                login_user(user)
+                next_page = request.args.get('next')
+                if next_page and not next_page.startswith('/'):
+                    next_page = None
+                return redirect(next_page or url_for('admin.index'))
+            
+            flash("Email ou mot de passe incorrect", "error")
+            return render_template("login.html"), 401
+            
+        except Exception as e:
+            app.logger.error(f"Login error: {str(e)}")
+            flash("Une erreur s'est produite", "error")
+            return render_template("login.html"), 500
+
+    @app.route("/signup", methods=["GET", "POST"])
+    # @admin_required
+    def signup() -> Union[str, Response]:
+        """Route to create new admin users."""
+        if request.method == "GET":
+            if current_user.is_authenticated:
+                return redirect(url_for('admin.index'))
+            return render_template("signup.html")
+        
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        password_confirm = request.form.get("password_confirm")
+
+        if not all([username, email, password, password_confirm]):
+            flash("Tous les champs sont obligatoires", "error")
+            return render_template("signup.html"), 400
+            
+        if password != password_confirm:
+            flash("Les mots de passe ne correspondent pas", "error")
+            return render_template("signup.html"), 400
+
+        if User.query.filter_by(email=email).first():
+            flash("Cet email existe déjà", "error")
+            return render_template("signup.html"), 400
+
+        try:
+            password_bytes = password.encode('utf-8')
+            hashed_password = bcrypt.generate_password_hash(password_bytes).decode('utf-8')
+            
+            user = User(
+                username=username,
+                email=email,
+                password=hashed_password
+            )
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash("Administrateur créé avec succès", "success")
+            return redirect(url_for('admin.index'))
+            
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Signup error: {str(e)}")
+            flash("Une erreur s'est produite", "error")
+            return render_template("signup.html"), 500
+
+    @app.route("/logout")
+    # @admin_required
+    def logout() -> Response:
+        """Admin logout."""
+        logout_user()
+        return redirect(url_for('index'))
 
     @app.route("/api")
     def root() -> Tuple[Response, Literal[200]]:
@@ -115,14 +251,13 @@ def register_routes(app: Flask, db: SQLAlchemy):
     ################################################
 
     @app.route("/api/terms", methods=["POST"])
+    # @admin_required
     def create_term() -> (
         Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
     ):
         """
         Creates a new Term in the glossary database.
-
-        Input:  Nothing
-        Output: (Response) | a JSON response with the created Term or an error message.
+        Only admins can create terms.
         """
         # Get the JSON data from the request body
         data = request.get_json()
@@ -201,30 +336,15 @@ def register_routes(app: Flask, db: SQLAlchemy):
         )
 
     @app.route("/api/terms", methods=["GET"])
-    @cross_origin()
-    def get_terms() -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+    def get_terms() -> Tuple[Response, Literal[200]]:
         """
-        Retrieves all Terms in the glossary database.
-
-        Input:  Nothing
-        Output: (Response) | a JSON response with all Terms or an error message.
+        Get all terms from the glossary database.
+        Public endpoint - no authentication required.
         """
-        try:
-            # Fetch all the records of the table 'terms' in the database
-            terms = Term.query.all()
-            if not terms:
-                return jsonify({"message": "No Terms found."}), 404
-
-            # Create a list of dictionaries representing each term
-            terms_list: List[Dict[str, Any]] = [term.to_dict() for term in terms]
-
-            return jsonify(terms_list), 200
-
-        except Exception as e:
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        terms = Term.query.all()
+        return jsonify([term.to_dict() for term in terms]), 200
 
     @app.route("/api/terms/<int:tid>", methods=["GET"])
-    @cross_origin()
     def get_term(
         tid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
@@ -245,54 +365,19 @@ def register_routes(app: Flask, db: SQLAlchemy):
         except Exception as e:
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-    @app.route("/api/terms/search", methods=["GET"])
-    @cross_origin()
-    def search_terms() -> (
-        Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]
-    ):
-        """
-        Retrieves terms that match a given search string
-        in either the english_term or french_term.
-
-        Input:  Query parameter "term" | the search string to find within english_term or french_term.
-        Output: (Response)             | a JSON response with matching Term(s) or an error message.
-        """
-        # Get the search term from the query parameters
-        search_term = request.args.get("term", "").strip().lower()
-
-        # Validate the search term
-        if not search_term:
-            return jsonify({"error": "Search term is required."}), 400
-
-        try:
-            # Query the database for terms where the english_term or french_term contains the search term
-            terms = Term.query.filter(
-                (Term.english_term.ilike(f"%{search_term}%"))
-                | (Term.french_term.ilike(f"%{search_term}%"))
-            ).all()
-
-            if not terms:
-                return jsonify({"message": "No matching terms found."}), 404
-
-            # Create a list of dictionaries representing the matched terms
-            terms_list: List[Dict[str, Any]] = [term.to_dict() for term in terms]
-
-            return jsonify(terms_list), 200
-
-        except Exception as e:
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
-
     @app.route("/api/terms/<int:tid>", methods=["PUT"])
+    # @admin_required
     def update_term(
         tid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
         """
-        Updates an existing Term by its ID.
-
-        Input:  (int) tid   | the ID of the term to update.
-                JSON body with the fields to update.
-        Output: (Response) | a JSON response with the updated Term or an error message.
+        Update a term in the glossary database.
+        Only admins can update terms.
         """
+        term = Term.query.get(tid)
+        if not term:
+            return jsonify({"error": "Term not found"}), 404
+
         # Get the JSON data from the request body
         data = request.get_json()
 
@@ -324,10 +409,6 @@ def register_routes(app: Flask, db: SQLAlchemy):
             )
 
         try:
-            term = Term.query.get(tid)
-            if not term:
-                return jsonify({"error": f"Term with ID {tid} not found."}), 404
-
             # Update the term fields
             if english_term is not None:
                 term.english_term = english_term.strip()
@@ -415,14 +496,13 @@ def register_routes(app: Flask, db: SQLAlchemy):
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/api/terms/<int:tid>", methods=["DELETE"])
+    # @admin_required
     def delete_term(
         tid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
         """
-        Deletes an existing Term by its ID.
-
-        Input:  (int) tid   | the ID of the term to delete.
-        Output: (Response)  | a JSON response confirming deletion or an error message.
+        Delete a term from the glossary database.
+        Only admins can delete terms.
         """
         try:
             term = Term.query.get(tid)
@@ -444,6 +524,7 @@ def register_routes(app: Flask, db: SQLAlchemy):
     ################################################
 
     @app.route("/api/users", methods=["POST"])
+    # @admin_required
     def create_user() -> (
         Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
     ):
@@ -512,7 +593,7 @@ def register_routes(app: Flask, db: SQLAlchemy):
         )
 
     @app.route("/api/users", methods=["GET"])
-    @cross_origin()
+    # @admin_required
     def get_users() -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
         """
         Retrieves all Users in the glossary database.
@@ -535,7 +616,7 @@ def register_routes(app: Flask, db: SQLAlchemy):
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/api/users/<int:uid>", methods=["GET"])
-    @cross_origin()
+    # @admin_required
     def get_user(
         uid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
@@ -557,6 +638,7 @@ def register_routes(app: Flask, db: SQLAlchemy):
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/api/users/<int:uid>", methods=["PUT"])
+    # @admin_required
     def update_user(
         uid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
@@ -648,6 +730,7 @@ def register_routes(app: Flask, db: SQLAlchemy):
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/api/users/<int:uid>", methods=["DELETE"])
+    # @admin_required
     def delete_user(
         uid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
@@ -670,3 +753,49 @@ def register_routes(app: Flask, db: SQLAlchemy):
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+    @app.route("/update_password/<int:user_id>", methods=["POST"])
+    @login_required
+    def update_password(user_id: int) -> Response:
+        """Update user password with proper hashing."""
+        try:
+            if not current_user.is_authenticated:
+                return jsonify({"error": "Authentication required"}), 401
+                
+            if current_user.id != user_id:
+                return jsonify({"error": "Unauthorized"}), 403
+
+            new_password = request.form.get("new_password")
+            if not new_password:
+                flash("Le nouveau mot de passe est requis", "error")
+                return render_template("update_password.html"), 400
+
+            user = User.query.get(user_id)
+            if not user:
+                flash("Utilisateur non trouvé", "error")
+                return render_template("update_password.html"), 404
+
+            password_bytes = new_password.encode('utf-8')
+            hashed_password = bcrypt.generate_password_hash(password_bytes).decode('utf-8')
+            user.password = hashed_password
+            
+            db.session.commit()
+            flash("Mot de passe mis à jour avec succès", "success")
+            return redirect(url_for('admin.index'))
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Password update error: {str(e)}")
+            flash("Une erreur s'est produite", "error")
+            return render_template("update_password.html"), 500
+
+    @app.route("/update_password_form")
+    @login_required
+    def update_password_form() -> str:
+        """Display the password update form."""
+        return render_template("update_password.html")
+
+    @app.errorhandler(404)
+    def page_not_found(e):
+        """404 - Not Found page."""
+        return render_template("404.html"), 404
