@@ -47,10 +47,22 @@ def create_app() -> Flask:
     # Initialize the Flask application
     db.init_app(app)
 
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "login"
+
+    bcrypt = Bcrypt(app)
+
+    from models import User  # noqa: F401
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
     # import register_routes here to avoid circular imports
     from routes import register_routes
 
-    register_routes(app, db)
+    register_routes(app, db, bcrypt)
 
     migrate: Migrate = Migrate(app, db)  # noqa: F841
 
