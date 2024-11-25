@@ -765,15 +765,22 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             if current_user.id != user_id:
                 return jsonify({"error": "Unauthorized"}), 403
 
+            old_password = request.form.get("old_password")
             new_password = request.form.get("new_password")
-            if not new_password:
-                flash("Le nouveau mot de passe est requis", "error")
+            
+            if not old_password or not new_password:
+                flash("Les deux mots de passe sont requis", "error")
                 return render_template("update_password.html"), 400
 
             user = User.query.get(user_id)
             if not user:
                 flash("Utilisateur non trouvé", "error")
                 return render_template("update_password.html"), 404
+
+            # Verify old password
+            if not bcrypt.check_password_hash(user.password, old_password.encode('utf-8')):
+                flash("Le mot de passe actuel est incorrect", "error")
+                return render_template("update_password.html"), 401
 
             password_bytes = new_password.encode('utf-8')
             hashed_password = bcrypt.generate_password_hash(password_bytes).decode('utf-8')
