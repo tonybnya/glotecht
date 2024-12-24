@@ -25,17 +25,56 @@ def admin_required(f: Callable) -> Callable:
     def decorated_function(*args: Any, **kwargs: Any) -> Any:
         if not current_user.is_authenticated:
             return redirect(url_for('login', next=request.url))
+        if not current_user.is_admin():
+            flash("Accès administrateur requis", "error")
+            return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+# class SecureAdminIndexView(AdminIndexView):
+#     """Secure admin index that requires authentication."""
+    
+#     @expose('/')
+#     @admin_required
+#     def index(self):
+#         return super().index()
 
 
 class SecureAdminIndexView(AdminIndexView):
     """Secure admin index that requires authentication."""
     
     @expose('/')
-    # @admin_required
+    @admin_required
     def index(self):
-        return super().index()
+        """Render the admin index page with user context."""
+        # Get the current user's information
+        user_info = {
+            'username': current_user.username,
+            'email': current_user.email
+        }
+        
+        # Get counts for dashboard
+        users_count = User.query.count()
+        terms_count = Term.query.count()
+        
+        return self.render('admin/index.html', 
+                           user_info=user_info,
+                           users_count=users_count,
+                           terms_count=terms_count)
+
+    @expose('/logout')
+    def logout(self):
+        """Custom logout route for admin panel."""
+        logout_user()
+        flash("Vous avez été déconnecté avec succès", "success")
+        return redirect(url_for('index'))
+
+    @expose('/update-password')
+    @login_required
+    def update_password_view(self):
+        """Redirect to password update form."""
+        return redirect(url_for('update_password_form'))
 
 
 class SecureModelView(ModelView):
@@ -52,6 +91,7 @@ class UserAdminView(SecureModelView):
     """Admin interface for User model."""
     column_list = ['id', 'username', 'email']
     column_searchable_list = ['username', 'email']
+    column_filters = ['username', 'email']
     form_excluded_columns = ['password']
     can_create = True
     can_edit = True
@@ -68,9 +108,9 @@ class UserAdminView(SecureModelView):
 
 class TermAdminView(SecureModelView):
     """Admin interface for Term model."""
-    column_list = ['tid', 'english_term', 'french_term', 'domain_en', 'domain_fr']
-    column_searchable_list = ['english_term', 'french_term']
-    column_filters = ['domain_en', 'domain_fr']
+    column_list = ['tid', 'english_term', 'french_term', 'subdomains_en', 'subdomains_fr']
+    column_searchable_list = ['english_term', 'french_term', 'domain_en', 'domain_fr']
+    column_filters = ['domain_en', 'domain_fr', 'semantic_label_en', 'semantic_label_fr']
     can_create = True
     can_edit = True
     can_delete = True
@@ -83,14 +123,14 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     # Initialize Flask-Admin with secure index
     admin = Admin(
         app,
-        name="GloTechT - Panneau d'Administration",
+        name="GloTechT - Admin Panel",
         template_mode='bootstrap4',
-        index_view=SecureAdminIndexView()
+        index_view=SecureAdminIndexView(name='Dashboard')
     )
 
     # Add secure model views
-    admin.add_view(UserAdminView(User, db.session, name='Administrateurs'))
-    admin.add_view(TermAdminView(Term, db.session, name='Termes'))
+    admin.add_view(UserAdminView(User, db.session, name='Admin'))
+    admin.add_view(TermAdminView(Term, db.session, name='Terms'))
 
     # Public routes
     @app.route("/")
@@ -112,26 +152,52 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     @cross_origin()
     def search_terms() -> Tuple[Response, int]:
         """Public API endpoint for searching terms."""
-        query = request.args.get("q", "").lower()
+        query = request.args.get("q", "").lower().strip()
         if not query:
             return jsonify([]), 200
 
         try:
-            terms = Term.query.all()
-            results = []
+            # Debugging: Log the incoming query
+            app.logger.info(f"Search query received: '{query}'")
+
+            # Use SQLAlchemy's more efficient search capabilities
+            search_query = Term.query.filter(
+                db.or_(
+                    Term.english_term.ilike(f"%{query}%"),
+                    Term.french_term.ilike(f"%{query}%"),
+                    Term.domain_en.ilike(f"%{query}%"),
+                    Term.domain_fr.ilike(f"%{query}%"),
+                    Term.semantic_label_en.ilike(f"%{query}%"),
+                    Term.semantic_label_fr.ilike(f"%{query}%"),
+                    Term.definition_en.ilike(f"%{query}%"),
+                    Term.definition_fr.ilike(f"%{query}%")
+                )
+            )
             
-            for term in terms:
-                if (query in term.english_term.lower() or 
-                    query in term.french_term.lower() or
-                    query in term.domain_en.lower() or
-                    query in term.domain_fr.lower()):
-                    results.append(term.to_dict())
+            # Debugging: Log the SQL query
+            app.logger.info(f"Generated SQL query: {str(search_query)}")
+            
+            # Debugging: Count total terms and matching terms
+            total_terms = Term.query.count()
+            matching_terms = search_query.count()
+            
+            app.logger.info(f"Total terms in database: {total_terms}")
+            app.logger.info(f"Matching terms found: {matching_terms}")
+            
+            results = [term.to_dict() for term in search_query.all()]
+            
+            # Debugging: Log results
+            app.logger.info(f"Search results: {results}")
             
             return jsonify(results), 200
             
         except Exception as e:
+            # More detailed error logging
             app.logger.error(f"Search error: {str(e)}")
-            return jsonify({"error": "An error occurred during search"}), 500
+            app.logger.error(f"Error type: {type(e)}")
+            import traceback
+            app.logger.error(traceback.format_exc())
+            return jsonify({"error": f"An error occurred during search: {str(e)}"}), 500
 
     # Admin-only routes
     @app.route("/login", methods=["GET", "POST"])
@@ -173,7 +239,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return render_template("login.html"), 500
 
     @app.route("/signup", methods=["GET", "POST"])
-    # @admin_required
     def signup() -> Union[str, Response]:
         """Route to create new admin users."""
         if request.method == "GET":
@@ -205,14 +270,15 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             user = User(
                 username=username,
                 email=email,
-                password=hashed_password
+                password=hashed_password,
+                role='admin'
             )
             
             db.session.add(user)
             db.session.commit()
             
             flash("Administrateur créé avec succès", "success")
-            return redirect(url_for('admin.index'))
+            return redirect(url_for('login'))
             
         except Exception as e:
             db.session.rollback()
@@ -221,7 +287,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return render_template("signup.html"), 500
 
     @app.route("/logout")
-    # @admin_required
     def logout() -> Response:
         """Admin logout."""
         logout_user()
@@ -251,7 +316,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     ################################################
 
     @app.route("/api/terms", methods=["POST"])
-    # @admin_required
     def create_term() -> (
         Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
     ):
@@ -366,7 +430,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/api/terms/<int:tid>", methods=["PUT"])
-    # @admin_required
     def update_term(
         tid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
@@ -496,7 +559,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/api/terms/<int:tid>", methods=["DELETE"])
-    # @admin_required
     def delete_term(
         tid: int,
     ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
@@ -523,239 +585,233 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     # USER ROUTES
     ################################################
 
-    @app.route("/api/users", methods=["POST"])
-    # @admin_required
-    def create_user() -> (
-        Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
-    ):
-        """
-        Creates a new User in the glossary database.
+    # @app.route("/api/users", methods=["POST"])
+    # def create_user() -> (
+    #     Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
+    # ):
+    #     """
+    #     Creates a new User in the glossary database.
 
-        Input:  Nothing
-        Output: (Response) | a JSON response with the created User or an error message.
-        """
-        # Get the JSON data from the request body
-        data = request.get_json()
+    #     Input:  Nothing
+    #     Output: (Response) | a JSON response with the created User or an error message.
+    #     """
+    #     # Get the JSON data from the request body
+    #     data = request.get_json()
 
-        # Validate the presence of required data
-        if not data:
-            return jsonify({"error": "Invalid JSON data."}), 400
+    #     # Validate the presence of required data
+    #     if not data:
+    #         return jsonify({"error": "Invalid JSON data."}), 400
 
-        username: str = data.get("username")
-        email: str = data.get("email")
-        password: str = data.get("password")
-        role: str = data.get("role")
+    #     username: str = data.get("username")
+    #     email: str = data.get("email")
+    #     password: str = data.get("password")
+    #     role: str = data.get("role")
 
-        if not username:
-            return jsonify({"error": "Username is required."}), 400
-        if not email:
-            return jsonify({"error": "Email is required."}), 400
-        if not password:
-            return jsonify({"error": "Password is required."}), 400
-        if not role:
-            return jsonify({"error": "Role is required."}), 400
+    #     if not username:
+    #         return jsonify({"error": "Username is required."}), 400
+    #     if not email:
+    #         return jsonify({"error": "Email is required."}), 400
+    #     if not password:
+    #         return jsonify({"error": "Password is required."}), 400
+    #     if not role:
+    #         return jsonify({"error": "Role is required."}), 400
 
-        # Validate data types of the the required fields
-        if not isinstance(username, str) or not isinstance(email, str) or not isinstance(password, str)or not isinstance(role, str):
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid data types: Username, email, and role should be strings."
-                    }
-                ),
-                400,
-            )
+    #     # Validate data types of the the required fields
+    #     if not isinstance(username, str) or not isinstance(email, str) or not isinstance(password, str)or not isinstance(role, str):
+    #         return (
+    #             jsonify(
+    #                 {
+    #                     "error": "Invalid data types: Username, email, and role should be strings."
+    #                 }
+    #             ),
+    #             400,
+    #         )
 
-        user: User = User(
-            username=data.get("username"),
-            email=data.get("email"),
-            password=data.get("password"),
-            role=data.get("role"),
-        )
+    #     user: User = User(
+    #         username=data.get("username"),
+    #         email=data.get("email"),
+    #         password=data.get("password"),
+    #         role=data.get("role"),
+    #     )
 
-        try:
-            # Add the user to the session
-            db.session.add(user)
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            return (
-                jsonify({"error": "This User already exists."}),
-                400,
-            )
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     try:
+    #         # Add the user to the session
+    #         db.session.add(user)
+    #         db.session.commit()
+    #     except IntegrityError:
+    #         db.session.rollback()
+    #         return (
+    #             jsonify({"error": "This User already exists."}),
+    #             400,
+    #         )
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-        return (
-            jsonify({"message": "User created successfully!", "user": user.to_dict()}),
-            201,
-        )
+    #     return (
+    #         jsonify({"message": "User created successfully!", "user": user.to_dict()}),
+    #         201,
+    #     )
 
-    @app.route("/api/users", methods=["GET"])
-    # @admin_required
-    def get_users() -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
-        """
-        Retrieves all Users in the glossary database.
+    # @app.route("/api/users", methods=["GET"])
+    # def get_users() -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+    #     """
+    #     Retrieves all Users in the glossary database.
 
-        Input:  Nothing
-        Output: (Response) | a JSON response with all Users or an error message.
-        """
-        try:
-            # Fetch all the records of the table 'users' in the database
-            users = User.query.all()
-            if not users:
-                return jsonify({"message": "No Users found."}), 404
+    #     Input:  Nothing
+    #     Output: (Response) | a JSON response with all Users or an error message.
+    #     """
+    #     try:
+    #         # Fetch all the records of the table 'users' in the database
+    #         users = User.query.all()
+    #         if not users:
+    #             return jsonify({"message": "No Users found."}), 404
 
-            # Create a list of dictionaries representing each term
-            users_list: List[Dict[str, Any]] = [user.to_dict() for user in users]
+    #         # Create a list of dictionaries representing each term
+    #         users_list: List[Dict[str, Any]] = [user.to_dict() for user in users]
 
-            return jsonify(users_list), 200
+    #         return jsonify(users_list), 200
 
-        except Exception as e:
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     except Exception as e:
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-    @app.route("/api/users/<int:uid>", methods=["GET"])
-    # @admin_required
-    def get_user(
-        uid: int,
-    ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
-        """
-        Retrieves a single User by its ID.
+    # @app.route("/api/users/<int:uid>", methods=["GET"])
+    # def get_user(
+    #     uid: int,
+    # ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+    #     """
+    #     Retrieves a single User by its ID.
 
-        Input:  (int) uid   | the ID of the User to retrieve.
-        Output: (Response)  | a JSON response with the User details or an error message.
-        """
-        try:
-            # Fetch the User with the given User ID
-            user = User.query.get(uid)
-            if not user:
-                return jsonify({"error": f"User with ID {uid} not found."}), 404
+    #     Input:  (int) uid   | the ID of the User to retrieve.
+    #     Output: (Response)  | a JSON response with the User details or an error message.
+    #     """
+    #     try:
+    #         # Fetch the User with the given User ID
+    #         user = User.query.get(uid)
+    #         if not user:
+    #             return jsonify({"error": f"User with ID {uid} not found."}), 404
 
-            return jsonify(user.to_dict()), 200
+    #         return jsonify(user.to_dict()), 200
 
-        except Exception as e:
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     except Exception as e:
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-    @app.route("/api/users/<int:uid>", methods=["PUT"])
-    # @admin_required
-    def update_user(
-        uid: int,
-    ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
-        """
-        Updates an existing User by its ID.
+    # @app.route("/api/users/<int:uid>", methods=["PUT"])
+    # def update_user(
+    #     uid: int,
+    # ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
+    #     """
+    #     Updates an existing User by its ID.
 
-        Input:  (int) uid   | the ID of the user to update.
-                JSON body with the fields to update.
-        Output: (Response) | a JSON response with the updated User or an error message.
-        """
-        # Get the JSON data from the request body
-        data = request.get_json()
+    #     Input:  (int) uid   | the ID of the user to update.
+    #             JSON body with the fields to update.
+    #     Output: (Response) | a JSON response with the updated User or an error message.
+    #     """
+    #     # Get the JSON data from the request body
+    #     data = request.get_json()
 
-        if not data:
-            return jsonify({"error": "Invalid JSON data"}), 400
+    #     if not data:
+    #         return jsonify({"error": "Invalid JSON data"}), 400
 
-        # Validate required fields
-        username: str = data.get("username")
-        email: str = data.get("email")
-        password: str = data.get("password")
-        role: str = data.get("role")
+    #     # Validate required fields
+    #     username: str = data.get("username")
+    #     email: str = data.get("email")
+    #     password: str = data.get("password")
+    #     role: str = data.get("role")
 
-        if not username:
-            return jsonify({"error": "Username is required."}), 400
-        if not email:
-            return jsonify({"error": "Email is required."}), 400
-        if not password:
-            return jsonify({"error": "Password is required."}), 400
-        if not role:
-            return jsonify({"error": "Role is required."}), 400
+    #     if not username:
+    #         return jsonify({"error": "Username is required."}), 400
+    #     if not email:
+    #         return jsonify({"error": "Email is required."}), 400
+    #     if not password:
+    #         return jsonify({"error": "Password is required."}), 400
+    #     if not role:
+    #         return jsonify({"error": "Role is required."}), 400
 
-        if username is not None and not isinstance(username, str):
-            return (
-                jsonify(
-                    {"error": "Invalid data type: Username should be a string."}
-                ),
-                400,
-            )
-        if email is not None and not isinstance(email, str):
-            return (
-                jsonify(
-                    {"error": "Invalid data type: Email should be a string."}
-                ),
-                400,
-            )
-        if password is not None and not isinstance(password, str):
-            return (
-                jsonify(
-                    {"error": "Invalid data type: Password should be a string."}
-                ),
-                400,
-            )
-        if role is not None and not isinstance(role, str):
-            return (
-                jsonify(
-                    {"error": "Invalid data type: Role should be a string."}
-                ),
-                400,
-            )
+    #     if username is not None and not isinstance(username, str):
+    #         return (
+    #             jsonify(
+    #                 {"error": "Invalid data type: Username should be a string."}
+    #             ),
+    #             400,
+    #         )
+    #     if email is not None and not isinstance(email, str):
+    #         return (
+    #             jsonify(
+    #                 {"error": "Invalid data type: Email should be a string."}
+    #             ),
+    #             400,
+    #         )
+    #     if password is not None and not isinstance(password, str):
+    #         return (
+    #             jsonify(
+    #                 {"error": "Invalid data type: Password should be a string."}
+    #             ),
+    #             400,
+    #         )
+    #     if role is not None and not isinstance(role, str):
+    #         return (
+    #             jsonify(
+    #                 {"error": "Invalid data type: Role should be a string."}
+    #             ),
+    #             400,
+    #         )
 
-        try:
-            user = User.query.get(uid)
-            if not user:
-                return jsonify({"error": f"User with ID {uid} not found."}), 404
+    #     try:
+    #         user = User.query.get(uid)
+    #         if not user:
+    #             return jsonify({"error": f"User with ID {uid} not found."}), 404
 
-            # Update the term fields
-            if username is not None:
-                user.username = username.strip()
-            if email is not None:
-                user.email = email.strip()
-            if password is not None:
-                user.password = password.strip()
-            if role is not None:
-                user.role = role.strip()
+    #         # Update the term fields
+    #         if username is not None:
+    #             user.username = username.strip()
+    #         if email is not None:
+    #             user.email = email.strip()
+    #         if password is not None:
+    #             user.password = password.strip()
+    #         if role is not None:
+    #             user.role = role.strip()
 
-            db.session.commit()
+    #         db.session.commit()
 
-            return (
-                jsonify(
-                    {"message": "User updated successfully!", "user": user.to_dict()}
-                ),
-                200,
-            )
-        except IntegrityError:
-            db.session.rollback()
-            return jsonify({"error": "Integrity error occurred."}), 400
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #         return (
+    #             jsonify(
+    #                 {"message": "User updated successfully!", "user": user.to_dict()}
+    #             ),
+    #             200,
+    #         )
+    #     except IntegrityError:
+    #         db.session.rollback()
+    #         return jsonify({"error": "Integrity error occurred."}), 400
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-    @app.route("/api/users/<int:uid>", methods=["DELETE"])
-    # @admin_required
-    def delete_user(
-        uid: int,
-    ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
-        """
-        Deletes an existing User by its ID.
+    # @app.route("/api/users/<int:uid>", methods=["DELETE"])
+    # def delete_user(
+    #     uid: int,
+    # ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+    #     """
+    #     Deletes an existing User by its ID.
 
-        Input:  (int) uid   | the ID of the user to delete.
-        Output: (Response)  | a JSON response confirming deletion or an error message.
-        """
-        try:
-            user = User.query.get(uid)
-            if not user:
-                return jsonify({"error": f"User with ID {uid} not found."}), 404
+    #     Input:  (int) uid   | the ID of the user to delete.
+    #     Output: (Response)  | a JSON response confirming deletion or an error message.
+    #     """
+    #     try:
+    #         user = User.query.get(uid)
+    #         if not user:
+    #             return jsonify({"error": f"User with ID {uid} not found."}), 404
 
-            db.session.delete(user)
-            db.session.commit()
+    #         db.session.delete(user)
+    #         db.session.commit()
 
-            return jsonify({"message": "User deleted successfully!"}), 200
+    #         return jsonify({"message": "User deleted successfully!"}), 200
 
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     @app.route("/update_password/<int:user_id>", methods=["POST"])
-    @login_required
     def update_password(user_id: int) -> Response:
         """Update user password with proper hashing."""
         try:
@@ -794,7 +850,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return render_template("update_password.html"), 500
 
     @app.route("/update_password_form")
-    @login_required
     def update_password_form() -> str:
         """Display the password update form."""
         if not current_user.is_authenticated:

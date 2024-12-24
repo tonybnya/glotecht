@@ -28,10 +28,20 @@ class User(db.Model, UserMixin):
     username: str = db.Column(db.String, nullable=False)
     email: str = db.Column(db.String, nullable=False)
     password: str = db.Column(db.String, nullable=False)
+    role: str = db.Column(db.String, nullable=False, default='user')
 
     __table_args__ = (
         db.UniqueConstraint("username", "email", name="unique_terms"),
     )
+
+    def is_admin(self) -> bool:
+        """
+        Check if the user has admin privileges.
+        
+        Returns:
+            bool: True if the user is an admin, False otherwise
+        """
+        return self.role == 'admin'
 
     def __repr__(self) -> str:
         """

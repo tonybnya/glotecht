@@ -1,0 +1,71 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Current Admin</h3>
+                </div>
+                <div class="panel-body">
+                    <p><strong>Username:</strong> {{ user_info.username }}</p>
+                    <p><strong>Email:</strong> {{ user_info.email }}</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-users fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="huge">{{ users_count }}</div>
+                                    <div>Total Admin</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="panel panel-green">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-book fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="huge">{{ terms_count }}</div>
+                                    <div>Terms</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="panel panel-yellow">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Quick Actions</h3>
+                        </div>
+                        <div class="panel-body text-center">
+                            <a href="{{ url_for('update_password_form') }}" class="btn btn-warning btn-lg">
+                                <i class="fa fa-lock"></i> Update The Password
+                            </a>
+                            <a href="{{ url_for('admin.logout') }}" class="btn btn-danger btn-lg">
+                                <i class="fa fa-sign-out"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

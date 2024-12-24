@@ -46,12 +46,22 @@ const TemplateRenderer = {
       .join('');
   },
 
-  renderField(label, value) {
+  renderField(label, value, isList = false) {
     if (!value || (Array.isArray(value) && value.length === 0)) return '';
 
-    const content = Array.isArray(value)
-      ? value.map(item => `<span class="mb-0 text-sm">${TextFormatter.format(item) || '<br />'}</span>`).join('')
-      : `<p class="text-sm font-normal text-gray-900">${TextFormatter.format(value)}</p>`;
+    const formatValue = (item) => TextFormatter.format(item) || '<br />';
+
+    const content = Array.isArray(value) 
+      ? (isList 
+        ? `<ul class="list-disc list-inside text-sm">
+            ${value.map(item => `<li>${formatValue(item)}</li>`).join('')}
+          </ul>`
+        : value.map(item => `<span class="mb-0 text-sm">${formatValue(item)}</span>`).join(''))
+      : (isList 
+        ? `<ul class="list-disc list-inside text-sm">
+            <li>${formatValue(value)}</li>
+          </ul>`
+        : `<p class="text-sm font-normal text-gray-900">${formatValue(value)}</p>`);
 
     return `
       <li class="py-3 sm:py-4">
@@ -63,6 +73,23 @@ const TemplateRenderer = {
         </div>
       </li>`;
   },
+  // renderField(label, value) {
+  //   if (!value || (Array.isArray(value) && value.length === 0)) return '';
+
+  //   const content = Array.isArray(value)
+  //     ? value.map(item => `<span class="mb-0 text-sm">${TextFormatter.format(item) || '<br />'}</span>`).join('')
+  //     : `<p class="text-sm font-normal text-gray-900">${TextFormatter.format(value)}</p>`;
+
+  //   return `
+  //     <li class="py-3 sm:py-4">
+  //       <div class="flex items-center space-x-4">
+  //         <div class="flex-1 min-w-0">
+  //           <p class="text-sm text-[#296F9A] font-bold">${label}</p>
+  //           ${content}
+  //         </div>
+  //       </div>
+  //     </li>`;
+  // },
 
   renderLexicalRelations(label, relations) {
     if (!relations?.length) return '';
@@ -89,7 +116,7 @@ const TemplateRenderer = {
   renderTermCard(item, isEnglish = true) {
     const lang = isEnglish ? 'en' : 'fr';
     const labels = {
-      semantic: isEnglish ? 'SL' : 'ES',
+      semantic: isEnglish ? 'Semantic Label' : 'Etiquette Sémantique',
       domain: isEnglish ? 'Domain' : 'Domaine',
       subdomain: isEnglish ? 'Subdomain' : 'Sous-domaine',
       variant: isEnglish ? 'Variant' : 'Variante',
@@ -133,11 +160,11 @@ const TemplateRenderer = {
             ${this.renderField(labels.variant, item[`variant_${lang}`])}
             ${this.renderField(labels.synonym, item[`near_synonym_${lang}`])}
             ${this.renderField(labels.definition, item[`definition_${lang}`])}
-            ${this.renderField(labels.syntactic, item[`syntactic_cooccurrence_${lang}`])}
+            ${this.renderField(labels.syntactic, item[`syntactic_cooccurrence_${lang}`], true)}
             ${this.renderLexicalRelations(labels.lexical, item[`lexical_relations_${lang}`])}
             ${this.renderField('Note', item[`note_${lang}`])}
-            ${this.renderField(labels.confused, item[`note_to_be_confused_with_${lang}`])}
-            ${this.renderField(labels.expression, item[`frequent_expression_${lang}`])}
+            ${this.renderField(labels.confused, item[`note_to_be_confused_with_${lang}`], true)}
+            ${this.renderField(labels.expression, item[`frequent_expression_${lang}`], true)}
             ${this.renderField(labels.phraseology, item[`phraseology_${lang}`])}
             ${this.renderField(labels.context, item[`context_${lang}`])}
           </ul>
@@ -177,49 +204,6 @@ class SearchManager {
     });
   }
 
-  matchesSearchCriteria(item, searchTerm, searchConfig) {
-    const { field, altField, isArray, isComplex } = searchConfig;
-    const terms = searchTerm.toLowerCase().split(/\s+/);
-    
-    const checkField = (value) => {
-      if (!value) return false;
-      if (typeof value === 'string') {
-        return terms.every(term => value.toLowerCase().includes(term));
-      }
-      return false;
-    };
-
-    const checkArray = (arr) => {
-      if (!Array.isArray(arr)) return false;
-      return arr.some(value => {
-        if (typeof value === 'string') {
-          return terms.every(term => value.toLowerCase().includes(term));
-        }
-        return false;
-      });
-    };
-
-    const checkLexicalRelations = (relations) => {
-      if (!Array.isArray(relations)) return false;
-      return relations.some(relation => {
-        const [key, values] = Object.entries(relation)[0];
-        if (Array.isArray(values)) {
-          return values.some(value => terms.every(term => value.toLowerCase().includes(term))) ||
-                 terms.every(term => key.toLowerCase().includes(term));
-        }
-        return terms.every(term => key.toLowerCase().includes(term));
-      });
-    };
-
-    if (isComplex) {
-      return checkLexicalRelations(item[field]) || checkLexicalRelations(item[altField]);
-    } else if (isArray) {
-      return checkArray(item[field]) || checkArray(item[altField]);
-    } else {
-      return checkField(item[field]) || checkField(item[altField]);
-    }
-  }
-
   async performSearch() {
     const searchTerm = this.searchInput.value.trim();
     if (!searchTerm) {
@@ -228,8 +212,8 @@ class SearchManager {
     }
 
     try {
-      const response = await fetch(`${CONFIG.API_URL}?term=${encodeURIComponent(searchTerm)}`, {
-        headers: { accept: 'application/json' }
+      const response = await fetch(`${CONFIG.API_URL}?q=${encodeURIComponent(searchTerm)}`, {
+        headers: { 'Accept': 'application/json' }
       });
 
       if (!response.ok) {
@@ -237,17 +221,7 @@ class SearchManager {
       }
 
       const data = await response.json();
-      const searchConfig = CONFIG.SEARCH_TYPES[this.searchType];
-      
-      if (!searchConfig) {
-        throw new Error('Invalid search type');
-      }
-
-      const filteredResults = data.filter(item => 
-        this.matchesSearchCriteria(item, searchTerm, searchConfig)
-      );
-
-      this.displayResults(filteredResults, searchTerm);
+      this.displayResults(data, searchTerm);
     } catch (error) {
       console.error('Error fetching data:', error);
       this.resultsContainer.innerHTML = `
@@ -289,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Term Card PDF</title>
+              <title>Author: DT | Source: GLOTECHT @2024</title>
               <style>
                 @media print {
                   @page {
