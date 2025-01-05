@@ -1,71 +1,77 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title">Current Admin</h3>
-                </div>
-                <div class="panel-body">
-                    <p><strong>Username:</strong> {{ user_info.username }}</p>
-                    <p><strong>Email:</strong> {{ user_info.email }}</p>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="panel panel-primary">
-                        <div class="panel-heading">
-                            <div class="row">
-                                <div class="col-xs-3">
-                                    <i class="fa fa-users fa-5x"></i>
-                                </div>
-                                <div class="col-xs-9 text-right">
-                                    <div class="huge">{{ users_count }}</div>
-                                    <div>Total Admin</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="panel panel-green">
-                        <div class="panel-heading">
-                            <div class="row">
-                                <div class="col-xs-3">
-                                    <i class="fa fa-book fa-5x"></i>
-                                </div>
-                                <div class="col-xs-9 text-right">
-                                    <div class="huge">{{ terms_count }}</div>
-                                    <div>Terms</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="panel panel-yellow">
-                        <div class="panel-heading">
-                            <h3 class="panel-title">Quick Actions</h3>
-                        </div>
-                        <div class="panel-body text-center">
-                            <a href="{{ url_for('update_password_form') }}" class="btn btn-warning btn-lg">
-                                <i class="fa fa-lock"></i> Update The Password
-                            </a>
-                            <a href="{{ url_for('admin.logout') }}" class="btn btn-danger btn-lg">
-                                <i class="fa fa-sign-out"></i> Logout
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-header bg-white">
+          <h5 class="card-title mb-0">Administrateur connecté</h5>
         </div>
+        <div class="card-body">
+          <div class="d-flex flex-column">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Administrateur :</span>
+              <strong>{{ user_info.username }}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Email :</span>
+              <strong>{{ user_info.email }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-header bg-white">
+          <h5 class="card-title mb-0">Base de données</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="d-flex align-items-center">
+                <i class="fa fa-users mr-2 text-primary"></i>
+                <span class="text-muted"># Administrateurs :</span>
+              </div>
+              <strong class="text-primary">{{ users_count }}</strong>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <i class="fa fa-book mr-2 text-primary"></i>
+                <span class="text-muted"># Termes :</span>
+              </div>
+              <strong class="text-primary">{{ terms_count }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-header bg-white">
+          <h5 class="card-title mb-0">Actions rapides</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a
+              href="{{ url_for('update_password_form') }}"
+              class="btn btn-outline-warning text-dark mb-2"
+            >
+              <i class="fa fa-lock mr-2"></i>Modifier votre mot de passe
+            </a>
+            <a
+              href="{{ url_for('admin.logout') }}"
+              class="btn btn-outline-danger text-dark"
+            >
+              <i class="fa fa-sign-out mr-2"></i>Déconnexion
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

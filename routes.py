@@ -123,14 +123,15 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     # Initialize Flask-Admin with secure index
     admin = Admin(
         app,
-        name="GloTechT - Admin Panel",
+        name="GloTechT",
         template_mode='bootstrap4',
-        index_view=SecureAdminIndexView(name='Dashboard')
+        index_view=SecureAdminIndexView(name='Tableau de bord'),
+        # index_view=SecureAdminIndexView()
     )
 
     # Add secure model views
-    admin.add_view(UserAdminView(User, db.session, name='Admin'))
-    admin.add_view(TermAdminView(Term, db.session, name='Terms'))
+    admin.add_view(UserAdminView(User, db.session, name='Administrateurs'))
+    admin.add_view(TermAdminView(Term, db.session, name='Termes'))
 
     # Public routes
     @app.route("/")
