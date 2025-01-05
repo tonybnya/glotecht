@@ -1,0 +1,245 @@
+{% extends "base.html" %} {% block title %}GloTechT | Documentation{% endblock
+%} {% block content %}
+<div class="min-h-screen font-inter bg-gray-100">
+  <header class="bg-gray-900 text-white px-4 lg:px-6 py-2.5">
+    <div
+      class="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl"
+    >
+      <a href="/" class="flex items-center">
+        <img
+          src="/img/brain.png"
+          class="mr-3 h-6 sm:h-9"
+          alt="DTechGloss Logo"
+        />
+        <span
+          class="self-center font-extrabold text-xl whitespace-nowrap dark:text-white"
+          >GloTechT</span
+        >
+      </a>
+    </div>
+  </header>
+
+  <section class="container mx-auto px-4 py-16">
+    <h1 class="text-8xl font-bold font-inter text-center text-gray-800 py-8">
+      Documentation
+    </h1>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">GloTechT</h3>
+        <p class="text-gray-600 mb-4">Documentation complète de GloTechT.</p>
+        <a
+          href="/static/docs/faq.pdf"
+          download
+          class="inline-flex items-center px-4 py-2 bg-[#296F9A] text-white rounded-lg hover:bg-[#194B6B] transition duration-300"
+        >
+          Télécharger PDF
+          <svg
+            class="w-5 h-5 ml-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            ></path>
+          </svg>
+        </a>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">
+          Bases de données
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Présentation de la base de données de GloTechT.
+        </p>
+        <a
+          href="/static/docs/faq.pdf"
+          download
+          class="inline-flex items-center px-4 py-2 bg-[#296F9A] text-white rounded-lg hover:bg-[#194B6B] transition duration-300"
+        >
+          Télécharger PDF
+          <svg
+            class="w-5 h-5 ml-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            ></path>
+          </svg>
+        </a>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">
+          Guide Utilisateur
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Manuel complet pour comprendre et utiliser GloTechT.
+        </p>
+        <a
+          href="/static/docs/guide_utilisateur.pdf"
+          download
+          class="inline-flex items-center px-4 py-2 bg-[#296F9A] text-white rounded-lg hover:bg-[#194B6B] transition duration-300"
+        >
+          Télécharger PDF
+          <svg
+            class="w-5 h-5 ml-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            ></path>
+          </svg>
+        </a>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">
+          Termes et Conditions
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Informations légales et conditions d'utilisation de la plateforme.
+        </p>
+        <a
+          href="/static/docs/termes_conditions.pdf"
+          download
+          class="inline-flex items-center px-4 py-2 bg-[#296F9A] text-white rounded-lg hover:bg-[#194B6B] transition duration-300"
+        >
+          Télécharger PDF
+          <svg
+            class="w-5 h-5 ml-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            ></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="bottom-0 z-30 w-full bg-gray-50">
+    <div
+      class="bg-white max-sm:flex max-sm:flex-col max-sm:items-center md:flex md:items-center md:justify-between shadow rounded-lg p-4 md:p-6 xl:p-8 my-6 mx-4"
+    >
+      <nav aria-label="Footer Navigation">
+        <ul class="flex items-center flex-wrap mb-6 md:mb-0">
+          <li>
+            <a
+              href="#"
+              class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6"
+              >Termes & Conditions</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6"
+              >Licenses</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('index') }}"
+              class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6"
+              >Accueil</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('contact') }}"
+              class="text-sm font-normal text-gray-500 mr-4 md:mr-6 hover:underline"
+              >Contact</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('glossary') }}"
+              class="text-sm font-normal text-gray-500 hover:underline"
+              >Glossaire</a
+            >
+          </li>
+        </ul>
+      </nav>
+      <div class="flex sm:justify-center space-x-6">
+        <a
+          href="#"
+          class="text-gray-900 hover:text-[#296F9A]"
+          aria-label="Facebook"
+        >
+          <svg
+            class="h-5 w-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </a>
+        <a
+          href="#"
+          class="text-gray-900 hover:text-[#296F9A]"
+          aria-label="Instagram"
+        >
+          <svg
+            class="h-5 w-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"
+            />
+          </svg>
+        </a>
+        <a
+          href="#"
+          class="text-gray-900 hover:text-[#296F9A]"
+          aria-label="Twitter"
+        >
+          <svg
+            class="h-5 w-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 6.253c3.825 0 6.975 3.15 6.975 7.072 0 3.923-3.15 7.072-6.975 7.072-3.825 0-6.975-3.15-6.975-7.072 0-3.923 3.15-7.072 6.975-7.072zm0 1.828c2.755 0 5 2.245 5 5 0 2.755-2.245 5-5 5-2.755 0-5-2.245-5-5 0-2.755 2.245-5 5-5zm-.135 8.576c-.997.265-2.062.265-3.059 0-1.001-.265-1.75-1.184-1.75-2.25 0-1.066.75-2.25 1.75-2.25 1.001 0 2.062.265 3.059.265 1.001 0 1.75 1.184 1.75 2.25 0 1.066-.75 2.25-1.75 2.25z"
+            />
+          </svg>
+        </a>
+      </div>
+    </div>
+    <p class="text-center text-sm my-5">&copy; 2024 Tous Droits Réservés.</p>
+  </footer>
+</div>
+{% endblock %}

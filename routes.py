@@ -148,6 +148,11 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         """Contact page."""
         return render_template("contact.html")
 
+    @app.route("/docs")
+    def docs() -> str:
+        """Documentation page."""
+        return render_template("docs.html")
+
     @app.route("/api/terms/search", methods=["GET"])
     @cross_origin()
     def search_terms() -> Tuple[Response, int]:
