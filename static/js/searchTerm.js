@@ -1,7 +1,7 @@
 // Constants and Configuration
 const CONFIG = {
   API_URL: "http://127.0.0.1:5003/api/terms/search",
-  DEBOUNCE_DELAY: 300,
+  DEBOUNCE_DELAY: 500,
   COLORS: [
     { text: "text-white", bg: "bg-[#194B6B]" },
     { text: "text-white", bg: "bg-[#A32A34]" },

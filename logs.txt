@@ -1,0 +1,24 @@
+19a0d91 fix: check all fields in all languages, adjust heights of cards to fit the higher one
+6d6525f fix: check all fields in all languages, adjust heights of cards to fit the higher one
+36628f0 fix: handle flash messages
+72fdb94 perf: enhance the app by including security headers & CSRF protection
+63e5512 feat+perf: improve the admin panel template and add the template for the documentation
+eea7106 docs+feat: add font awesome icons for socials and the links to them
+d0fa512 feat: add a docs template for the documentation
+962a172 style: change bg on hover of some elements of intermediate sections
+5708cab style: adjust the responsiveness
+6f3efb5 huge update
+43d93ac refactor: Update User model to use id and remove role references
+3118c7f style: Update password visibility icons to match login template
+804bea6 refactor: Remove role field and translate admin panel to French
+f132fe4 fix: Handle unauthenticated users in password update
+a034451 feat: Update password fields with consistent eye icons
+ed25a00 feat: Add old password verification to password update
+6f264d0 refactor: Update User model with id field and remove role
+4452837 feat: Update app configuration with authentication setup
+8912b19 chore: Comment out login_required decorators temporarily
+00650e3 feat: Add password update routes with improved security
+0292134 feat: Add authentication templates (login, signup, update password)
+a27db0e chore: Update .gitignore
+fd051e9 huge update
+5beb596 first commit
