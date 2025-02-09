@@ -7,7 +7,16 @@ from __future__ import annotations
 from functools import wraps
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
-from flask import Flask, Response, jsonify, render_template, request, redirect, url_for, flash
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+)
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_cors import cross_origin
@@ -21,20 +30,22 @@ from models import Term, User
 
 def admin_required(f: Callable) -> Callable:
     """Decorator to require admin access for a route."""
+
     @wraps(f)
     def decorated_function(*args: Any, **kwargs: Any) -> Any:
         if not current_user.is_authenticated:
-            return redirect(url_for('login', next=request.url))
+            return redirect(url_for("login", next=request.url))
         if not current_user.is_admin():
             flash("Accès administrateur requis", "error")
-            return redirect(url_for('index'))
+            return redirect(url_for("index"))
         return f(*args, **kwargs)
+
     return decorated_function
 
 
 # class SecureAdminIndexView(AdminIndexView):
 #     """Secure admin index that requires authentication."""
-    
+
 #     @expose('/')
 #     @admin_required
 #     def index(self):
@@ -43,56 +54,55 @@ def admin_required(f: Callable) -> Callable:
 
 class SecureAdminIndexView(AdminIndexView):
     """Secure admin index that requires authentication."""
-    
-    @expose('/')
+
+    @expose("/")
     @admin_required
     def index(self):
         """Render the admin index page with user context."""
         # Get the current user's information
-        user_info = {
-            'username': current_user.username,
-            'email': current_user.email
-        }
-        
+        user_info = {"username": current_user.username, "email": current_user.email}
+
         # Get counts for dashboard
         users_count = User.query.count()
         terms_count = Term.query.count()
-        
-        return self.render('admin/index.html', 
-                           user_info=user_info,
-                           users_count=users_count,
-                           terms_count=terms_count)
 
-    @expose('/logout')
+        return self.render(
+            "admin/index.html",
+            user_info=user_info,
+            users_count=users_count,
+            terms_count=terms_count,
+        )
+
+    @expose("/logout")
     def logout(self):
         """Custom logout route for admin panel."""
         logout_user()
-        flash("Vous avez été déconnecté avec succès", "success")
-        return redirect(url_for('index'))
+        return redirect(url_for("index"))
 
-    @expose('/update-password')
+    @expose("/update-password")
     @login_required
     def update_password_view(self):
         """Redirect to password update form."""
-        return redirect(url_for('update_password_form'))
+        return redirect(url_for("update_password_form"))
 
 
 class SecureModelView(ModelView):
     """Base secure model view that requires authentication."""
-    
+
     def is_accessible(self) -> bool:
         return current_user.is_authenticated
 
     def inaccessible_callback(self, name: str, **kwargs: Any) -> Response:
-        return redirect(url_for('login', next=request.url))
+        return redirect(url_for("login", next=request.url))
 
 
 class UserAdminView(SecureModelView):
     """Admin interface for User model."""
-    column_list = ['id', 'username', 'email']
-    column_searchable_list = ['username', 'email']
-    column_filters = ['username', 'email']
-    form_excluded_columns = ['password']
+
+    column_list = ["id", "username", "email"]
+    column_searchable_list = ["username", "email"]
+    column_filters = ["username", "email"]
+    form_excluded_columns = ["password"]
     can_create = True
     can_edit = True
     can_delete = True
@@ -101,16 +111,30 @@ class UserAdminView(SecureModelView):
     def on_model_change(self, form: Any, model: User, is_created: bool) -> None:
         """Hash password when creating/editing users through admin."""
         if is_created or form.password.data:
-            model.password = Bcrypt().generate_password_hash(
-                form.password.data.encode('utf-8')
-            ).decode('utf-8')
+            model.password = (
+                Bcrypt()
+                .generate_password_hash(form.password.data.encode("utf-8"))
+                .decode("utf-8")
+            )
 
 
 class TermAdminView(SecureModelView):
     """Admin interface for Term model."""
-    column_list = ['tid', 'english_term', 'french_term', 'subdomains_en', 'subdomains_fr']
-    column_searchable_list = ['english_term', 'french_term', 'domain_en', 'domain_fr']
-    column_filters = ['domain_en', 'domain_fr', 'semantic_label_en', 'semantic_label_fr']
+
+    column_list = [
+        "tid",
+        "english_term",
+        "french_term",
+        "subdomains_en",
+        "subdomains_fr",
+    ]
+    column_searchable_list = ["english_term", "french_term", "domain_en", "domain_fr"]
+    column_filters = [
+        "domain_en",
+        "domain_fr",
+        "semantic_label_en",
+        "semantic_label_fr",
+    ]
     can_create = True
     can_edit = True
     can_delete = True
@@ -119,19 +143,19 @@ class TermAdminView(SecureModelView):
 
 def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     """Register all routes and admin views."""
-    
+
     # Initialize Flask-Admin with secure index
     admin = Admin(
         app,
         name="GloTechT",
-        template_mode='bootstrap4',
-        index_view=SecureAdminIndexView(name='Tableau de bord'),
+        template_mode="bootstrap4",
+        index_view=SecureAdminIndexView(name="Tableau de bord"),
         # index_view=SecureAdminIndexView()
     )
 
     # Add secure model views
-    admin.add_view(UserAdminView(User, db.session, name='Administrateurs'))
-    admin.add_view(TermAdminView(Term, db.session, name='Termes'))
+    admin.add_view(UserAdminView(User, db.session, name="Administrateurs"))
+    admin.add_view(TermAdminView(Term, db.session, name="Termes"))
 
     # Public routes
     @app.route("/")
@@ -176,32 +200,33 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
                     Term.semantic_label_en.ilike(f"%{query}%"),
                     Term.semantic_label_fr.ilike(f"%{query}%"),
                     Term.definition_en.ilike(f"%{query}%"),
-                    Term.definition_fr.ilike(f"%{query}%")
+                    Term.definition_fr.ilike(f"%{query}%"),
                 )
             )
-            
+
             # Debugging: Log the SQL query
             app.logger.info(f"Generated SQL query: {str(search_query)}")
-            
+
             # Debugging: Count total terms and matching terms
             total_terms = Term.query.count()
             matching_terms = search_query.count()
-            
+
             app.logger.info(f"Total terms in database: {total_terms}")
             app.logger.info(f"Matching terms found: {matching_terms}")
-            
+
             results = [term.to_dict() for term in search_query.all()]
-            
+
             # Debugging: Log results
             app.logger.info(f"Search results: {results}")
-            
+
             return jsonify(results), 200
-            
+
         except Exception as e:
             # More detailed error logging
             app.logger.error(f"Search error: {str(e)}")
             app.logger.error(f"Error type: {type(e)}")
             import traceback
+
             app.logger.error(traceback.format_exc())
             return jsonify({"error": f"An error occurred during search: {str(e)}"}), 500
 
@@ -210,11 +235,11 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     def login() -> Union[str, Response]:
         """Admin login page."""
         if current_user.is_authenticated:
-            return redirect(url_for('admin.index'))
+            return redirect(url_for("admin.index"))
 
         if request.method == "GET":
             return render_template("login.html")
-        
+
         email = request.form.get("email")
         password = request.form.get("password")
 
@@ -228,17 +253,17 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
                 flash("Email ou mot de passe incorrect", "error")
                 return render_template("login.html"), 401
 
-            password_bytes = password.encode('utf-8')
+            password_bytes = password.encode("utf-8")
             if bcrypt.check_password_hash(user.password, password_bytes):
                 login_user(user)
-                next_page = request.args.get('next')
-                if next_page and not next_page.startswith('/'):
+                next_page = request.args.get("next")
+                if next_page and not next_page.startswith("/"):
                     next_page = None
-                return redirect(next_page or url_for('admin.index'))
-            
+                return redirect(next_page or url_for("admin.index"))
+
             flash("Email ou mot de passe incorrect", "error")
             return render_template("login.html"), 401
-            
+
         except Exception as e:
             app.logger.error(f"Login error: {str(e)}")
             flash("Une erreur s'est produite", "error")
@@ -249,9 +274,9 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         """Route to create new admin users."""
         if request.method == "GET":
             if current_user.is_authenticated:
-                return redirect(url_for('admin.index'))
+                return redirect(url_for("admin.index"))
             return render_template("signup.html")
-        
+
         username = request.form.get("username")
         email = request.form.get("email")
         password = request.form.get("password")
@@ -260,7 +285,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         if not all([username, email, password, password_confirm]):
             flash("Tous les champs sont obligatoires", "error")
             return render_template("signup.html"), 400
-            
+
         if password != password_confirm:
             flash("Les mots de passe ne correspondent pas", "error")
             return render_template("signup.html"), 400
@@ -270,22 +295,21 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return render_template("signup.html"), 400
 
         try:
-            password_bytes = password.encode('utf-8')
-            hashed_password = bcrypt.generate_password_hash(password_bytes).decode('utf-8')
-            
-            user = User(
-                username=username,
-                email=email,
-                password=hashed_password,
-                role='admin'
+            password_bytes = password.encode("utf-8")
+            hashed_password = bcrypt.generate_password_hash(password_bytes).decode(
+                "utf-8"
             )
-            
+
+            user = User(
+                username=username, email=email, password=hashed_password, role="admin"
+            )
+
             db.session.add(user)
             db.session.commit()
-            
+
             flash("Administrateur créé avec succès", "success")
-            return redirect(url_for('login'))
-            
+            return redirect(url_for("login"))
+
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Signup error: {str(e)}")
@@ -296,7 +320,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     def logout() -> Response:
         """Admin logout."""
         logout_user()
-        return redirect(url_for('index'))
+        return redirect(url_for("index"))
 
     @app.route("/api")
     def root() -> Tuple[Response, Literal[200]]:
@@ -310,12 +334,11 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             jsonify(
                 {
                     "EN": "English-French Glossary for Disruptive Technologies (Big Data, AI, Blockchain).",
-                    "FR": "Glossaire Anglais-Francais des technologies transformatrices (Big Data, IA, blockchain)."
+                    "FR": "Glossaire Anglais-Francais des technologies transformatrices (Big Data, IA, blockchain).",
                 }
             ),
             200,
         )
-
 
     ################################################
     # TERM ROUTES
@@ -586,7 +609,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             db.session.rollback()
             return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-
     ################################################
     # USER ROUTES
     ################################################
@@ -826,7 +848,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
 
             old_password = request.form.get("old_password")
             new_password = request.form.get("new_password")
-            
+
             if not old_password or not new_password:
                 flash("Les deux mots de passe sont requis", "error")
                 return render_template("update_password.html"), 400
@@ -837,17 +859,21 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
                 return render_template("update_password.html"), 404
 
             # Verify old password
-            if not bcrypt.check_password_hash(user.password, old_password.encode('utf-8')):
+            if not bcrypt.check_password_hash(
+                user.password, old_password.encode("utf-8")
+            ):
                 flash("Le mot de passe actuel est incorrect", "error")
                 return render_template("update_password.html"), 401
 
-            password_bytes = new_password.encode('utf-8')
-            hashed_password = bcrypt.generate_password_hash(password_bytes).decode('utf-8')
+            password_bytes = new_password.encode("utf-8")
+            hashed_password = bcrypt.generate_password_hash(password_bytes).decode(
+                "utf-8"
+            )
             user.password = hashed_password
-            
+
             db.session.commit()
             flash("Mot de passe mis à jour avec succès", "success")
-            return redirect(url_for('admin.index'))
+            return redirect(url_for("admin.index"))
 
         except Exception as e:
             db.session.rollback()
@@ -860,7 +886,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         """Display the password update form."""
         if not current_user.is_authenticated:
             flash("Veuillez vous connecter pour modifier votre mot de passe", "error")
-            return redirect(url_for('login'))
+            return redirect(url_for("login"))
         return render_template("update_password.html")
 
     @app.errorhandler(404)

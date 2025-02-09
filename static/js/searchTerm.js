@@ -1,38 +1,58 @@
 // Constants and Configuration
 const CONFIG = {
-  API_URL: 'http://127.0.0.1:5003/api/terms/search',
+  API_URL: "http://127.0.0.1:5003/api/terms/search",
   DEBOUNCE_DELAY: 300,
   COLORS: [
-    { text: 'text-white', bg: 'bg-[#194B6B]' },
-    { text: 'text-white', bg: 'bg-[#A32A34]' },
-    { text: 'text-white', bg: 'bg-black' }
+    { text: "text-white", bg: "bg-[#194B6B]" },
+    { text: "text-white", bg: "bg-[#A32A34]" },
+    { text: "text-white", bg: "bg-black" },
   ],
   SEARCH_TYPES: {
-    term: { field: 'english_term', altField: 'french_term' },
-    synonym: { field: 'near_synonym_en', altField: 'near_synonym_fr' },
-    subdomain: { field: 'subdomains_en', altField: 'subdomains_fr', isArray: true },
-    lexical_relation: { field: 'lexical_relations_en', altField: 'lexical_relations_fr', isComplex: true }
-  }
+    term: { field: "english_term", altField: "french_term" },
+    synonym: { field: "near_synonym_en", altField: "near_synonym_fr" },
+    subdomain: {
+      field: "subdomains_en",
+      altField: "subdomains_fr",
+      isArray: true,
+    },
+    lexical_relation: {
+      field: "lexical_relations_en",
+      altField: "lexical_relations_fr",
+      isComplex: true,
+    },
+  },
 };
 
 // Text formatting utilities
 const TextFormatter = {
   formatPatterns: {
-    em: { pattern: /\<em\>(.*?)\<\/em\>/g, replacement: '<em>$1</em>' },
-    sub: { pattern: /\<sub\>(.*?)\<\/sub\>/g, replacement: '<sub>$1</sub>' },
-    u: { pattern: /\<u\>(.*?)\<\/u\>/g, replacement: '<span class="underline">$1</span>' },
-    ms: { pattern: /\<ms\>(.*?)\<\/ms\>/g, replacement: '<span class="font-courier">$1</span>' },
-    lt: { pattern: /\<lt\>(.*?)\<\/lt\>/g, replacement: '<span class="line-through">$1</span>' },
-    b: { pattern: /\<b\>(.*?)\<\/b\>/g, replacement: '<strong>$1</strong>' }
+    em: { pattern: /\<em\>(.*?)\<\/em\>/g, replacement: "<em>$1</em>" },
+    sub: { pattern: /\<sub\>(.*?)\<\/sub\>/g, replacement: "<sub>$1</sub>" },
+    u: {
+      pattern: /\<u\>(.*?)\<\/u\>/g,
+      replacement: '<span class="underline">$1</span>',
+    },
+    ms: {
+      pattern: /\<ms\>(.*?)\<\/ms\>/g,
+      replacement: '<span class="font-courier">$1</span>',
+    },
+    lt: {
+      pattern: /\<lt\>(.*?)\<\/lt\>/g,
+      replacement: '<span class="line-through">$1</span>',
+    },
+    b: { pattern: /\<b\>(.*?)\<\/b\>/g, replacement: "<strong>$1</strong>" },
   },
 
   format(text) {
-    if (!text || typeof text !== 'string') return '';
-    
-    return Object.values(this.formatPatterns).reduce((formattedText, { pattern, replacement }) => {
-      return formattedText.replace(pattern, replacement);
-    }, text);
-  }
+    if (!text || typeof text !== "string") return "";
+
+    return Object.values(this.formatPatterns).reduce(
+      (formattedText, { pattern, replacement }) => {
+        return formattedText.replace(pattern, replacement);
+      },
+      text
+    );
+  },
 };
 
 // Template rendering functions
@@ -43,25 +63,31 @@ const TemplateRenderer = {
         const color = CONFIG.COLORS[index % CONFIG.COLORS.length];
         return `<span class="inline-block ${color.bg} ${color.text} py-1 px-2 mr-1 mb-2 rounded-lg text-sm">${item}</span>`;
       })
-      .join('');
+      .join("");
   },
 
   renderField(label, value, isList = false) {
-    if (!value || (Array.isArray(value) && value.length === 0)) return '';
+    if (!value || (Array.isArray(value) && value.length === 0)) return "";
 
-    const formatValue = (item) => TextFormatter.format(item) || '<br />';
+    const formatValue = (item) => TextFormatter.format(item) || "<br />";
 
-    const content = Array.isArray(value) 
-      ? (isList 
-        ? `<ul class="list-disc list-inside text-sm">
-            ${value.map(item => `<li>${formatValue(item)}</li>`).join('')}
+    const content = Array.isArray(value)
+      ? isList
+        ? `<ul class="list-none list-inside text-sm">
+            ${value.map((item) => `<li>${formatValue(item)}</li>`).join("")}
           </ul>`
-        : value.map(item => `<span class="mb-0 text-sm">${formatValue(item)}</span>`).join(''))
-      : (isList 
-        ? `<ul class="list-disc list-inside text-sm">
+        : value
+            .map(
+              (item) => `<span class="mb-0 text-sm">${formatValue(item)}</span>`
+            )
+            .join("")
+      : isList
+      ? `<ul class="list-none list-inside text-sm">
             <li>${formatValue(value)}</li>
           </ul>`
-        : `<p class="text-sm font-normal text-gray-900">${formatValue(value)}</p>`);
+      : `<p class="text-sm font-normal text-gray-900">${formatValue(
+          value
+        )}</p>`;
 
     return `
       <li class="py-3 sm:py-4">
@@ -92,52 +118,66 @@ const TemplateRenderer = {
   // },
 
   renderLexicalRelations(label, relations) {
-    if (!relations?.length) return '';
+    if (!relations?.length) return "";
 
-    const tableRows = relations.map(relation => {
-      const [key, values] = Object.entries(relation)[0];
-      const formattedValues = Array.isArray(values)
-        ? values.map(value => TextFormatter.format(value)).join('<br>')
-        : TextFormatter.format(values || '');
+    const tableRows = relations
+      .map((relation) => {
+        const [key, values] = Object.entries(relation)[0];
+        const formattedValues = Array.isArray(values)
+          ? values.map((value) => TextFormatter.format(value)).join("<br>")
+          : TextFormatter.format(values || "");
 
-      return `
+        return `
         <tr>
-          <th class="pl-0 py-2 text-sm font-normal">${TextFormatter.format(key)}</th>
+          <th class="pl-0 py-2 text-sm font-normal">${TextFormatter.format(
+            key
+          )}</th>
           <td class="pl-0 py-2 text-sm">${formattedValues}</td>
         </tr>`;
-    }).join('');
+      })
+      .join("");
 
-    return this.renderField(label, `
+    return this.renderField(
+      label,
+      `
       <table class="table-auto text-sm w-full text-left whitespace-normal">
         ${tableRows}
-      </table>`);
+      </table>`
+    );
   },
 
-  renderTermCard(item, isEnglish = true) {
-    const lang = isEnglish ? 'en' : 'fr';
+  renderTermCard(item, isEnglish = true, fieldsToRender = {}) {
+    const lang = isEnglish ? "en" : "fr";
     const labels = {
-      semantic: isEnglish ? 'Semantic Label' : 'Etiquette Sémantique',
-      domain: isEnglish ? 'Domain' : 'Domaine',
-      subdomain: isEnglish ? 'Subdomain' : 'Sous-domaine',
-      variant: isEnglish ? 'Variant' : 'Variante',
-      synonym: isEnglish ? 'Synonym' : 'Synonyme',
-      definition: isEnglish ? 'Definition' : 'Définition',
-      syntactic: isEnglish ? 'Syntactic Cooccurrence' : 'Cooccurrence Syntaxique',
-      lexical: isEnglish ? 'Lexical Relations' : 'Relations lexicales',
-      confused: isEnglish ? 'Not to be confused with' : 'À ne pas confondre avec',
-      expression: isEnglish ? 'Frequent Expression' : 'Expression fréquente',
-      phraseology: isEnglish ? 'Phraseology' : 'Phraséologie',
-      context: isEnglish ? 'Context' : 'Contexte'
+      semantic: isEnglish ? "Semantic Label" : "Etiquette Sémantique",
+      domain: isEnglish ? "Domain" : "Domaine",
+      subdomain: isEnglish ? "Subdomain" : "Sous-domaine",
+      variant: isEnglish ? "Variant" : "Variante",
+      synonym: isEnglish ? "Synonym" : "Synonyme",
+      definition: isEnglish ? "Definition" : "Définition",
+      syntactic: isEnglish
+        ? "Syntactic Cooccurrence"
+        : "Cooccurrence Syntaxique",
+      lexical: isEnglish ? "Lexical Relations" : "Relations lexicales",
+      confused: isEnglish
+        ? "Not to be confused with"
+        : "À ne pas confondre avec",
+      expression: isEnglish ? "Frequent Expression" : "Expression fréquente",
+      phraseology: isEnglish ? "Phraseology" : "Phraséologie",
+      context: isEnglish ? "Context" : "Contexte",
     };
 
-    const id = `${item.tid}-${lang}`; // Unique ID for this card
+    const id = `${item.tid}-${lang}`;
+    const fieldClass = `term-${item.tid}`; // Add this line to create a base class for the term
 
     return `
-      <div id="${id}" class="bg-white shadow-sm rounded-sm text-sm mb-4 p-2 sm:p-4 h-full">
+      <div id="${id}" class="bg-white shadow-sm rounded-md text-md h-full w-full p-6 ${fieldClass}-${lang}">
         <div class="flex flex-col items-start gap-1 mb-4">
           <div class="w-full flex justify-between items-center">
             <h3 class="text-xl max-sm:text-sm font-bold leading-none text-gray-500">
-              <span class="text-[#A32A34] font-bold">${TextFormatter.format(item[`${lang === 'en' ? 'english' : 'french'}_term`])}</span>
+              <span class="text-[#A32A34] font-bold">${TextFormatter.format(
+                item[`${lang === "en" ? "english" : "french"}_term`]
+              )}</span>
             </h3>
             <button onclick="downloadTermAsPDF('${id}')" class="text-[#296F9A] hover:text-[#194B6B] transition-colors ml-2" title="Download as PDF">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -146,57 +186,224 @@ const TemplateRenderer = {
             </button>
           </div>
           <h4 class="text-gray-700 font-normal">
-            <span class="text-[#296F9A]">${labels.semantic}</span>: ${item[`semantic_label_${lang}`]}
+            <span class="text-[#296F9A]">${labels.semantic}</span>: ${
+      item[`semantic_label_${lang}`]
+    }
           </h4>
           <h4 class="text-gray-700">
-            ${labels.domain}: <span class="text-[#296F9A] font-bold">${item[`domain_${lang}`]}</span>
+            ${labels.domain}: <span class="text-[#296F9A] font-bold">${
+      item[`domain_${lang}`]
+    }</span>
           </h4>
           <h4 class="text-gray-700">
-            ${labels.subdomain}: ${this.renderSubdomains(labels.subdomain, item[`subdomains_${lang}`])}
+            ${labels.subdomain}: ${this.renderSubdomains(
+      labels.subdomain,
+      item[`subdomains_${lang}`]
+    )}
           </h4>
         </div>
         <div class="flow-root">
           <ul role="list" class="divide-y divide-gray-200">
-            ${this.renderField(labels.variant, item[`variant_${lang}`])}
-            ${this.renderField(labels.synonym, item[`near_synonym_${lang}`])}
-            ${this.renderField(labels.definition, item[`definition_${lang}`])}
-            ${this.renderField(labels.syntactic, item[`syntactic_cooccurrence_${lang}`], true)}
-            ${this.renderLexicalRelations(labels.lexical, item[`lexical_relations_${lang}`])}
-            ${this.renderField('Note', item[`note_${lang}`])}
-            ${this.renderField(labels.confused, item[`note_to_be_confused_with_${lang}`], true)}
-            ${this.renderField(labels.expression, item[`frequent_expression_${lang}`], true)}
-            ${this.renderField(labels.phraseology, item[`phraseology_${lang}`])}
-            ${this.renderField(labels.context, item[`context_${lang}`])}
+            ${
+              fieldsToRender.variant?.[lang]
+                ? this.renderField(
+                    labels.variant,
+                    item[`variant_${lang}`],
+                    false,
+                    `${fieldClass}-variant`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.synonym?.[lang]
+                ? this.renderField(
+                    labels.synonym,
+                    item[`near_synonym_${lang}`],
+                    false,
+                    `${fieldClass}-synonym`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.definition?.[lang]
+                ? this.renderField(
+                    labels.definition,
+                    item[`definition_${lang}`],
+                    false,
+                    `${fieldClass}-definition`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.syntactic?.[lang]
+                ? this.renderField(
+                    labels.syntactic,
+                    item[`syntactic_cooccurrence_${lang}`],
+                    true,
+                    `${fieldClass}-syntactic`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.lexical?.[lang]
+                ? this.renderLexicalRelations(
+                    labels.lexical,
+                    item[`lexical_relations_${lang}`],
+                    `${fieldClass}-lexical`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.note?.[lang]
+                ? this.renderField(
+                    "Note",
+                    item[`note_${lang}`],
+                    false,
+                    `${fieldClass}-note`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.confused?.[lang]
+                ? this.renderField(
+                    labels.confused,
+                    item[`note_to_be_confused_with_${lang}`],
+                    true,
+                    `${fieldClass}-confused`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.expression?.[lang]
+                ? this.renderField(
+                    labels.expression,
+                    item[`frequent_expression_${lang}`],
+                    true,
+                    `${fieldClass}-expression`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.phraseology?.[lang]
+                ? this.renderField(
+                    labels.phraseology,
+                    item[`phraseology_${lang}`],
+                    false,
+                    `${fieldClass}-phraseology`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.context?.[lang]
+                ? this.renderField(
+                    labels.context,
+                    item[`context_${lang}`],
+                    false,
+                    `${fieldClass}-context`
+                  )
+                : ""
+            }
           </ul>
         </div>
       </div>`;
-  }
+  },
+
+  renderField(label, value, isList = false, fieldClass = "") {
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      return "";
+    }
+
+    const formatValue = (item) => TextFormatter.format(item) || "<br />";
+
+    const content = Array.isArray(value)
+      ? isList
+        ? `<ul class="list-none list-inside text-sm">
+            ${value.map((item) => `<li>${formatValue(item)}</li>`).join("")}
+          </ul>`
+        : value
+            .map(
+              (item) => `<span class="mb-0 text-sm">${formatValue(item)}</span>`
+            )
+            .join("")
+      : isList
+      ? `<ul class="list-none list-inside text-sm">
+            <li>${formatValue(value)}</li>
+          </ul>`
+      : `<p class="text-sm font-normal text-gray-900">${formatValue(
+          value
+        )}</p>`;
+
+    return `
+      <li class="py-3 sm:py-4 ${fieldClass}">
+        <div class="flex items-center space-x-4">
+          <div class="flex-1 min-w-0">
+            <p class="text-md text-[#296F9A] font-bold">${label}</p>
+            ${content}
+          </div>
+        </div>
+      </li>`;
+  },
+
+  renderLexicalRelations(label, relations, fieldClass = "") {
+    if (!relations?.length) {
+      return "";
+    }
+
+    const tableRows = relations
+      .map((relation) => {
+        const [key, values] = Object.entries(relation)[0];
+        const formattedValues = Array.isArray(values)
+          ? values.map((value) => TextFormatter.format(value)).join("<br>")
+          : TextFormatter.format(values || "");
+
+        return `
+        <tr>
+          <th class="pl-0 py-2 text-sm font-normal">${TextFormatter.format(
+            key
+          )}</th>
+          <td class="pl-0 py-2 text-sm">${formattedValues}</td>
+        </tr>`;
+      })
+      .join("");
+
+    return this.renderField(
+      label,
+      `<table class="table-auto text-md w-full text-left whitespace-normal">
+        ${tableRows}
+      </table>`,
+      false,
+      fieldClass
+    );
+  },
 };
 
 // Search functionality
 class SearchManager {
   constructor() {
-    this.searchInput = document.getElementById('search-input');
-    this.resultsContainer = document.getElementById('results');
-    this.criteriaForm = document.getElementById('criteria-form');
-    this.searchType = 'term';
+    this.searchInput = document.getElementById("search-input");
+    this.resultsContainer = document.getElementById("results");
+    this.criteriaForm = document.getElementById("criteria-form");
+    this.searchType = "term";
     this.debounceTimeout = null;
 
     if (!this.searchInput || !this.resultsContainer || !this.criteriaForm) {
-      throw new Error('Required DOM elements are missing.');
+      throw new Error("Required DOM elements are missing.");
     }
 
     this.init();
   }
 
   init() {
-    this.searchInput.addEventListener('input', () => {
+    this.searchInput.addEventListener("input", () => {
       clearTimeout(this.debounceTimeout);
-      this.debounceTimeout = setTimeout(() => this.performSearch(), CONFIG.DEBOUNCE_DELAY);
+      this.debounceTimeout = setTimeout(
+        () => this.performSearch(),
+        CONFIG.DEBOUNCE_DELAY
+      );
     });
 
     // Listen for search type changes
-    this.criteriaForm.addEventListener('change', (event) => {
+    this.criteriaForm.addEventListener("change", (event) => {
       if (event.detail) {
         this.searchType = event.detail;
         this.performSearch();
@@ -207,23 +414,26 @@ class SearchManager {
   async performSearch() {
     const searchTerm = this.searchInput.value.trim();
     if (!searchTerm) {
-      this.resultsContainer.innerHTML = '';
+      this.resultsContainer.innerHTML = "";
       return;
     }
 
     try {
-      const response = await fetch(`${CONFIG.API_URL}?q=${encodeURIComponent(searchTerm)}`, {
-        headers: { 'Accept': 'application/json' }
-      });
+      const response = await fetch(
+        `${CONFIG.API_URL}?q=${encodeURIComponent(searchTerm)}`,
+        {
+          headers: { Accept: "application/json" },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Quelque chose n\'a pas marché.');
+        throw new Error("Quelque chose n'a pas marché.");
       }
 
       const data = await response.json();
       this.displayResults(data, searchTerm);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
       this.resultsContainer.innerHTML = `
         <p class="text-center">Vérifiez l'orthographe du terme et Réessayez !</p>`;
     }
@@ -232,33 +442,130 @@ class SearchManager {
   displayResults(results, searchTerm) {
     if (results.length === 0) {
       this.resultsContainer.innerHTML = `
-        <p class="text-center">Aucun résultat trouvé pour "${searchTerm}".</p>`;
+        <div class="w-full flex justify-center items-center">
+          <p class="text-center">Aucun résultat trouvé pour "${searchTerm}".</p>
+        </div>`;
       return;
     }
 
-    this.resultsContainer.innerHTML = results.map(item => `
-      ${TemplateRenderer.renderTermCard(item, true)}
-      ${TemplateRenderer.renderTermCard(item, false)}
-    `).join('');
+    // Add container class to control the overall layout
+    this.resultsContainer.className = "flex flex-col gap-8 max-w-[95%] mx-auto";
+
+    this.resultsContainer.innerHTML = results
+      .map((item) => {
+        // Define field mappings with their corresponding API field names
+        const fieldMappings = {
+          variant: { en: "variant_en", fr: "variant_fr" },
+          synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
+          definition: { en: "definition_en", fr: "definition_fr" },
+          syntactic: {
+            en: "syntactic_cooccurrence_en",
+            fr: "syntactic_cooccurrence_fr",
+          },
+          lexical: { en: "lexical_relations_en", fr: "lexical_relations_fr" },
+          note: { en: "note_en", fr: "note_fr" },
+          confused: {
+            en: "note_to_be_confused_with_en",
+            fr: "note_to_be_confused_with_fr",
+          },
+          expression: {
+            en: "frequent_expression_en",
+            fr: "frequent_expression_fr",
+          },
+          phraseology: { en: "phraseology_en", fr: "phraseology_fr" },
+          context: { en: "context_en", fr: "context_fr" },
+        };
+
+        // Check each field's data presence
+        const fieldsToRender = Object.entries(fieldMappings).reduce(
+          (acc, [field, paths]) => {
+            const hasEnData =
+              item[paths.en] &&
+              (!Array.isArray(item[paths.en]) || item[paths.en].length > 0);
+            const hasFrData =
+              item[paths.fr] &&
+              (!Array.isArray(item[paths.fr]) || item[paths.fr].length > 0);
+
+            // Only include fields that have data in at least one language
+            if (hasEnData || hasFrData) {
+              acc[field] = { en: hasEnData, fr: hasFrData };
+            }
+
+            return acc;
+          },
+          {}
+        );
+
+        return `
+          <div class="flex flex-col md:flex-row w-full gap-4">
+            <article class="w-full md:w-1/2 p-4">
+              ${TemplateRenderer.renderTermCard(item, true, fieldsToRender)}
+            </article>
+            <article class="w-full md:w-1/2 p-4">
+              ${TemplateRenderer.renderTermCard(item, false, fieldsToRender)}
+            </article>
+          </div>
+        `;
+      })
+      .join("");
+
+    // Equalize heights of corresponding fields after rendering
+    results.forEach((item) => {
+      const fields = [
+        "variant",
+        "synonym",
+        "definition",
+        "syntactic",
+        "lexical",
+        "note",
+        "confused",
+        "expression",
+        "phraseology",
+        "context",
+      ];
+
+      fields.forEach((field) => {
+        const enSelector = `.term-${item.tid}-en .term-${item.tid}-${field}`;
+        const frSelector = `.term-${item.tid}-fr .term-${item.tid}-${field}`;
+
+        const enElement = document.querySelector(enSelector);
+        const frElement = document.querySelector(frSelector);
+
+        if (enElement && frElement) {
+          // Reset heights first
+          enElement.style.height = "auto";
+          frElement.style.height = "auto";
+
+          // Get natural heights
+          const enHeight = enElement.offsetHeight;
+          const frHeight = frElement.offsetHeight;
+
+          // Set both elements to the maximum height
+          const maxHeight = Math.max(enHeight, frHeight);
+          enElement.style.height = `${maxHeight}px`;
+          frElement.style.height = `${maxHeight}px`;
+        }
+      });
+    });
   }
 }
 
 // Initialize search functionality when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   try {
     new SearchManager();
-    
+
     // Add PDF download functionality to window scope
     window.downloadTermAsPDF = async (termId) => {
       try {
         const termCard = document.getElementById(termId);
         if (!termCard) {
-          console.error('Term card not found');
+          console.error("Term card not found");
           return;
         }
 
         // Create a new window for the printable version
-        const printWindow = window.open('', '_blank');
+        const printWindow = window.open("", "_blank");
         printWindow.document.write(`
           <!DOCTYPE html>
           <html>
@@ -412,20 +719,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </body>
           </html>
         `);
-        
+
         printWindow.document.close();
         printWindow.focus();
-        
+
         // Wait for content and styles to load
         setTimeout(() => {
           printWindow.print();
           printWindow.close();
         }, 500);
       } catch (error) {
-        console.error('Error generating PDF:', error);
+        console.error("Error generating PDF:", error);
       }
     };
   } catch (error) {
-    console.error('Failed to initialize search:', error);
+    console.error("Failed to initialize search:", error);
   }
 });
