@@ -68,7 +68,7 @@ block content %}
       <div class="w-full md:w-1/2 bg-gray-200 p-8">
         <h2 class="text-2xl text-center font-bold mb-6">Adresse & Contact</h2>
         <div class="space-y-4">
-          <div class="flex items-start">
+          <div class="flex items-start font-liter">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="h-6 w-6 mr-2 text-[#296F9A]"
@@ -234,14 +234,24 @@ block content %}
       >
         <i class="fa-brands fa-facebook"></i>
       </a>
-      <a href="https://www.instagram.com/deotouks/" target="_blank" class="hover:text-[#296F9A] w-5 h-5">
+      <a
+        href="https://www.instagram.com/deotouks/"
+        target="_blank"
+        class="hover:text-[#296F9A] w-5 h-5"
+      >
         <i class="fa-brands fa-instagram"></i>
       </a>
-      <a href="https://x.com/DieudonnToukam" target="_blank" class="hover:text-[#296F9A] w-5 h-5">
+      <a
+        href="https://x.com/DieudonnToukam"
+        target="_blank"
+        class="hover:text-[#296F9A] w-5 h-5"
+      >
         <i class="fa-brands fa-x-twitter"></i>
       </a>
     </div>
   </div>
-  <p class="text-center text-sm my-5">&copy; 2024 Tous Droits Réservés.</p>
+  <p class="text-center text-sm my-5">
+    &copy; <span id="currentYear"></span> • Tous Droits Réservés •
+  </p>
 </footer>
 {% endblock%}

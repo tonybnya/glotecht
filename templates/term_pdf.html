@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      .term-card {
+        font-family: Arial;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .bilingual {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+      }
+      .header {
+        border-bottom: 2px solid #333;
+        margin-bottom: 1rem;
+      }
+      .section {
+        margin-bottom: 1.5rem;
+      }
+      .label {
+        font-weight: bold;
+        color: #296f9a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="term-card">
+      <div class="header">
+        <h1>{{ term.english_term }} / {{ term.french_term }}</h1>
+      </div>
+      <div class="bilingual">
+        <div class="en-section">
+          <!-- English content -->
+        </div>
+        <div class="fr-section">
+          <!-- French content -->
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
