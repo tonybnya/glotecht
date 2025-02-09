@@ -11,6 +11,10 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
+from flask_wtf.csrf import CSRFProtect
+from flask_talisman import Talisman
+from error_handlers import register_error_handlers
+
 
 # Define a database object
 db: SQLAlchemy = SQLAlchemy()
@@ -32,14 +36,36 @@ def create_app() -> Flask:
     )
 
     # Define a string for the SQLite database
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(os.path.join(os.path.dirname(__file__), 'instance', 'glossary.db'))}"
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        f"sqlite:///{os.path.abspath(os.path.join(os.path.dirname(__file__), 'instance', 'glossary.db'))}"
+    )
 
     # Suppress warning related to the SQLALCHEMY_TRACK_MODIFICATIONS
     # configuration option in Flask-SQLAlchemy
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Set a secret key for session management
-    app.config["SECRET_KEY"] = os.getenv('SECRET_KEY')
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+    # Initialize security components
+    csrf = CSRFProtect(app)
+
+    # Configure security headers with Talisman
+    csp = {
+        "default-src": "'self'",
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https:"],
+    }
+
+    Talisman(
+        app,
+        content_security_policy=csp,
+        force_https=True,
+        session_cookie_secure=True,
+        strict_transport_security=True,
+        session_cookie_samesite="Lax",
+    )
 
     # Initialize CORS
     CORS(app)
@@ -63,6 +89,8 @@ def create_app() -> Flask:
     from routes import register_routes
 
     register_routes(app, db, bcrypt)
+    # Register error handlers
+    register_error_handlers(app, db)
 
     migrate: Migrate = Migrate(app, db)  # noqa: F841
 
