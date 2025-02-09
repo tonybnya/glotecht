@@ -25,6 +25,7 @@ instance/
 migrations/
 fiches/
 *.local
+*.txt
 GloTechT-improvements.md
 
 # Editor directories and files

@@ -441,6 +441,8 @@ class SearchManager {
 
   displayResults(results, searchTerm) {
     if (results.length === 0) {
+      this.resultsContainer.className =
+        "w-full flex justify-center items-center min-h-[100px]";
       this.resultsContainer.innerHTML = `
         <div class="w-full flex justify-center items-center">
           <p class="text-center">Aucun résultat trouvé pour "${searchTerm}".</p>
@@ -448,69 +450,100 @@ class SearchManager {
       return;
     }
 
-    // Add container class to control the overall layout
-    this.resultsContainer.className = "flex flex-col gap-8 max-w-[95%] mx-auto";
+    // Update container class for Swiper
+    this.resultsContainer.className = "swiper w-full max-w-[95%] mx-auto";
 
-    this.resultsContainer.innerHTML = results
-      .map((item) => {
-        // Define field mappings with their corresponding API field names
-        const fieldMappings = {
-          variant: { en: "variant_en", fr: "variant_fr" },
-          synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
-          definition: { en: "definition_en", fr: "definition_fr" },
-          syntactic: {
-            en: "syntactic_cooccurrence_en",
-            fr: "syntactic_cooccurrence_fr",
-          },
-          lexical: { en: "lexical_relations_en", fr: "lexical_relations_fr" },
-          note: { en: "note_en", fr: "note_fr" },
-          confused: {
-            en: "note_to_be_confused_with_en",
-            fr: "note_to_be_confused_with_fr",
-          },
-          expression: {
-            en: "frequent_expression_en",
-            fr: "frequent_expression_fr",
-          },
-          phraseology: { en: "phraseology_en", fr: "phraseology_fr" },
-          context: { en: "context_en", fr: "context_fr" },
-        };
+    // Create Swiper structure
+    this.resultsContainer.innerHTML = `
+      <div class="swiper-wrapper">
+        ${results
+          .map((item) => {
+            // Define field mappings with their corresponding API field names
+            const fieldMappings = {
+              variant: { en: "variant_en", fr: "variant_fr" },
+              synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
+              definition: { en: "definition_en", fr: "definition_fr" },
+              syntactic: {
+                en: "syntactic_cooccurrence_en",
+                fr: "syntactic_cooccurrence_fr",
+              },
+              lexical: {
+                en: "lexical_relations_en",
+                fr: "lexical_relations_fr",
+              },
+              note: { en: "note_en", fr: "note_fr" },
+              confused: {
+                en: "note_to_be_confused_with_en",
+                fr: "note_to_be_confused_with_fr",
+              },
+              expression: {
+                en: "frequent_expression_en",
+                fr: "frequent_expression_fr",
+              },
+              phraseology: { en: "phraseology_en", fr: "phraseology_fr" },
+              context: { en: "context_en", fr: "context_fr" },
+            };
 
-        // Check each field's data presence
-        const fieldsToRender = Object.entries(fieldMappings).reduce(
-          (acc, [field, paths]) => {
-            const hasEnData =
-              item[paths.en] &&
-              (!Array.isArray(item[paths.en]) || item[paths.en].length > 0);
-            const hasFrData =
-              item[paths.fr] &&
-              (!Array.isArray(item[paths.fr]) || item[paths.fr].length > 0);
+            // Check each field's data presence
+            const fieldsToRender = Object.entries(fieldMappings).reduce(
+              (acc, [field, paths]) => {
+                const hasEnData =
+                  item[paths.en] &&
+                  (!Array.isArray(item[paths.en]) || item[paths.en].length > 0);
+                const hasFrData =
+                  item[paths.fr] &&
+                  (!Array.isArray(item[paths.fr]) || item[paths.fr].length > 0);
 
-            // Only include fields that have data in at least one language
-            if (hasEnData || hasFrData) {
-              acc[field] = { en: hasEnData, fr: hasFrData };
-            }
+                // Only include fields that have data in at least one language
+                if (hasEnData || hasFrData) {
+                  acc[field] = { en: hasEnData, fr: hasFrData };
+                }
 
-            return acc;
-          },
-          {}
-        );
+                return acc;
+              },
+              {}
+            );
 
-        return `
-          <div class="flex flex-col md:flex-row w-full gap-4">
-            <article class="w-full md:w-1/2 p-4">
-              ${TemplateRenderer.renderTermCard(item, true, fieldsToRender)}
-            </article>
-            <article class="w-full md:w-1/2 p-4">
-              ${TemplateRenderer.renderTermCard(item, false, fieldsToRender)}
-            </article>
-          </div>
-        `;
-      })
-      .join("");
+            return `
+            <div class="swiper-slide py-4">
+              <div class="flex flex-col md:flex-row w-full gap-4">
+                <article class="w-full md:w-1/2 p-4">
+                  ${TemplateRenderer.renderTermCard(item, true, fieldsToRender)}
+                </article>
+                <article class="w-full md:w-1/2 p-4">
+                  ${TemplateRenderer.renderTermCard(
+                    item,
+                    false,
+                    fieldsToRender
+                  )}
+                </article>
+              </div>
+            </div>
+          `;
+          })
+          .join("")}
+      </div>
+      <div class="swiper-pagination"></div>
+      <div class="swiper-button-prev"></div>
+      <div class="swiper-button-next"></div>
+    `;
 
-    // Equalize heights of corresponding fields after rendering
-    results.forEach((item) => {
+    // Initialize Swiper
+    new Swiper(this.resultsContainer, {
+      slidesPerView: 1,
+      spaceBetween: 30,
+      pagination: {
+        el: ".swiper-pagination",
+        clickable: true,
+      },
+      navigation: {
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      },
+    });
+
+    // Equalize heights after Swiper initialization
+    results.forEach((item, index) => {
       const fields = [
         "variant",
         "synonym",
@@ -532,16 +565,12 @@ class SearchManager {
         const frElement = document.querySelector(frSelector);
 
         if (enElement && frElement) {
-          // Reset heights first
           enElement.style.height = "auto";
           frElement.style.height = "auto";
-
-          // Get natural heights
-          const enHeight = enElement.offsetHeight;
-          const frHeight = frElement.offsetHeight;
-
-          // Set both elements to the maximum height
-          const maxHeight = Math.max(enHeight, frHeight);
+          const maxHeight = Math.max(
+            enElement.offsetHeight,
+            frElement.offsetHeight
+          );
           enElement.style.height = `${maxHeight}px`;
           frElement.style.height = `${maxHeight}px`;
         }
