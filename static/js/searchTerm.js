@@ -34,7 +34,8 @@ const TextFormatter = {
     },
     ms: {
       pattern: /\<ms\>(.*?)\<\/ms\>/g,
-      replacement: '<span class="font-courier">$1</span>',
+      replacement: '<span class="font-mono">$1</span>',
+      // replacement: '<span class="font-courier">$1</span>',
     },
     lt: {
       pattern: /\<lt\>(.*?)\<\/lt\>/g,
@@ -420,7 +421,7 @@ class SearchManager {
 
     try {
       const response = await fetch(
-        `${CONFIG.API_URL}?q=${encodeURIComponent(searchTerm)}`,
+        `${CONFIG.API_URL}?q=${encodeURIComponent(searchTerm)}&type=${this.searchType}`,
         {
           headers: { Accept: "application/json" },
         }
@@ -435,7 +436,7 @@ class SearchManager {
     } catch (error) {
       console.error("Error fetching data:", error);
       this.resultsContainer.innerHTML = `
-        <p class="text-center">Vérifiez l'orthographe du terme et Réessayez !</p>`;
+        <p class="text-center">Une erreur s'est produite. Veuillez réessayer.</p>`;
     }
   }
 
