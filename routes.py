@@ -269,52 +269,52 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             flash("Une erreur s'est produite", "error")
             return render_template("login.html"), 500
 
-    @app.route("/signup", methods=["GET", "POST"])
-    def signup() -> Union[str, Response]:
-        """Route to create new admin users."""
-        if request.method == "GET":
-            if current_user.is_authenticated:
-                return redirect(url_for("admin.index"))
-            return render_template("signup.html")
+    # @app.route("/signup", methods=["GET", "POST"])
+    # def signup() -> Union[str, Response]:
+    #     """Route to create new admin users."""
+    #     if request.method == "GET":
+    #         if current_user.is_authenticated:
+    #             return redirect(url_for("admin.index"))
+    #         return render_template("signup.html")
 
-        username = request.form.get("username")
-        email = request.form.get("email")
-        password = request.form.get("password")
-        password_confirm = request.form.get("password_confirm")
+    #     username = request.form.get("username")
+    #     email = request.form.get("email")
+    #     password = request.form.get("password")
+    #     password_confirm = request.form.get("password_confirm")
 
-        if not all([username, email, password, password_confirm]):
-            flash("Tous les champs sont obligatoires", "error")
-            return render_template("signup.html"), 400
+    #     if not all([username, email, password, password_confirm]):
+    #         flash("Tous les champs sont obligatoires", "error")
+    #         return render_template("signup.html"), 400
 
-        if password != password_confirm:
-            flash("Les mots de passe ne correspondent pas", "error")
-            return render_template("signup.html"), 400
+    #     if password != password_confirm:
+    #         flash("Les mots de passe ne correspondent pas", "error")
+    #         return render_template("signup.html"), 400
 
-        if User.query.filter_by(email=email).first():
-            flash("Cet email existe déjà", "error")
-            return render_template("signup.html"), 400
+    #     if User.query.filter_by(email=email).first():
+    #         flash("Cet email existe déjà", "error")
+    #         return render_template("signup.html"), 400
 
-        try:
-            password_bytes = password.encode("utf-8")
-            hashed_password = bcrypt.generate_password_hash(password_bytes).decode(
-                "utf-8"
-            )
+    #     try:
+    #         password_bytes = password.encode("utf-8")
+    #         hashed_password = bcrypt.generate_password_hash(password_bytes).decode(
+    #             "utf-8"
+    #         )
 
-            user = User(
-                username=username, email=email, password=hashed_password, role="admin"
-            )
+    #         user = User(
+    #             username=username, email=email, password=hashed_password, role="admin"
+    #         )
 
-            db.session.add(user)
-            db.session.commit()
+    #         db.session.add(user)
+    #         db.session.commit()
 
-            flash("Administrateur créé avec succès", "success")
-            return redirect(url_for("login"))
+    #         flash("Administrateur créé avec succès", "success")
+    #         return redirect(url_for("login"))
 
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Signup error: {str(e)}")
-            flash("Une erreur s'est produite", "error")
-            return render_template("signup.html"), 500
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         app.logger.error(f"Signup error: {str(e)}")
+    #         flash("Une erreur s'est produite", "error")
+    #         return render_template("signup.html"), 500
 
     @app.route("/logout")
     def logout() -> Response:
