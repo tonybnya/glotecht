@@ -344,270 +344,270 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     # TERM ROUTES
     ################################################
 
-    @app.route("/api/terms", methods=["POST"])
-    def create_term() -> (
-        Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
-    ):
-        """
-        Creates a new Term in the glossary database.
-        Only admins can create terms.
-        """
-        # Get the JSON data from the request body
-        data = request.get_json()
+    # @app.route("/api/terms", methods=["POST"])
+    # def create_term() -> (
+    #     Tuple[Response, Union[Literal[201], Literal[400], Literal[500]]]
+    # ):
+    #     """
+    #     Creates a new Term in the glossary database.
+    #     Only admins can create terms.
+    #     """
+    #     # Get the JSON data from the request body
+    #     data = request.get_json()
 
-        # Validate the presence of required data
-        if not data:
-            return jsonify({"error": "Invalid JSON data."}), 400
+    #     # Validate the presence of required data
+    #     if not data:
+    #         return jsonify({"error": "Invalid JSON data."}), 400
 
-        english_term: str = data.get("english_term")
-        french_term: str = data.get("french_term")
+    #     english_term: str = data.get("english_term")
+    #     french_term: str = data.get("french_term")
 
-        if not english_term:
-            return jsonify({"error": "English Term is required."}), 400
-        if not french_term:
-            return jsonify({"error": "French Term is required."}), 400
+    #     if not english_term:
+    #         return jsonify({"error": "English Term is required."}), 400
+    #     if not french_term:
+    #         return jsonify({"error": "French Term is required."}), 400
 
-        # Validate data types of the the required fields
-        if not isinstance(english_term, str) or not isinstance(french_term, str):
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid data types: English and French terms should be strings."
-                    }
-                ),
-                400,
-            )
+    #     # Validate data types of the the required fields
+    #     if not isinstance(english_term, str) or not isinstance(french_term, str):
+    #         return (
+    #             jsonify(
+    #                 {
+    #                     "error": "Invalid data types: English and French terms should be strings."
+    #                 }
+    #             ),
+    #             400,
+    #         )
 
-        term: Term = Term(
-            domain_en=data.get("domain_en"),
-            domain_fr=data.get("domain_fr"),
-            subdomains_en=data.get("subdomains_en"),
-            subdomains_fr=data.get("subdomains_fr"),
-            english_term=english_term.strip(),
-            french_term=french_term.strip(),
-            semantic_label_en=data.get("semantic_label_en"),
-            semantic_label_fr=data.get("semantic_label_fr"),
-            variant_en=data.get("variant_en"),
-            variant_fr=data.get("variant_fr"),
-            near_synonym_en=data.get("near_synonym_en"),
-            near_synonym_fr=data.get("near_synonym_fr"),
-            definition_en=data.get("definition_en"),
-            definition_fr=data.get("definition_fr"),
-            syntactic_cooccurrence_en=data.get("syntactic_cooccurrence_en"),
-            syntactic_cooccurrence_fr=data.get("syntactic_cooccurrence_fr"),
-            lexical_relations_en=data.get("lexical_relations_en"),
-            lexical_relations_fr=data.get("lexical_relations_fr"),
-            note_en=data.get("note_en"),
-            note_fr=data.get("note_fr"),
-            not_to_be_confused_with_en=data.get("not_to_be_confused_with_en"),
-            not_to_be_confused_with_fr=data.get("not_to_be_confused_with_fr"),
-            frequent_expression_en=data.get("frequent_expression_en"),
-            frequent_expression_fr=data.get("frequent_expression_fr"),
-            phraseology_en=data.get("phraseology_en"),
-            phraseology_fr=data.get("phraseology_fr"),
-            context_en=data.get("context_en"),
-            context_fr=data.get("context_fr"),
-        )
+    #     term: Term = Term(
+    #         domain_en=data.get("domain_en"),
+    #         domain_fr=data.get("domain_fr"),
+    #         subdomains_en=data.get("subdomains_en"),
+    #         subdomains_fr=data.get("subdomains_fr"),
+    #         english_term=english_term.strip(),
+    #         french_term=french_term.strip(),
+    #         semantic_label_en=data.get("semantic_label_en"),
+    #         semantic_label_fr=data.get("semantic_label_fr"),
+    #         variant_en=data.get("variant_en"),
+    #         variant_fr=data.get("variant_fr"),
+    #         near_synonym_en=data.get("near_synonym_en"),
+    #         near_synonym_fr=data.get("near_synonym_fr"),
+    #         definition_en=data.get("definition_en"),
+    #         definition_fr=data.get("definition_fr"),
+    #         syntactic_cooccurrence_en=data.get("syntactic_cooccurrence_en"),
+    #         syntactic_cooccurrence_fr=data.get("syntactic_cooccurrence_fr"),
+    #         lexical_relations_en=data.get("lexical_relations_en"),
+    #         lexical_relations_fr=data.get("lexical_relations_fr"),
+    #         note_en=data.get("note_en"),
+    #         note_fr=data.get("note_fr"),
+    #         not_to_be_confused_with_en=data.get("not_to_be_confused_with_en"),
+    #         not_to_be_confused_with_fr=data.get("not_to_be_confused_with_fr"),
+    #         frequent_expression_en=data.get("frequent_expression_en"),
+    #         frequent_expression_fr=data.get("frequent_expression_fr"),
+    #         phraseology_en=data.get("phraseology_en"),
+    #         phraseology_fr=data.get("phraseology_fr"),
+    #         context_en=data.get("context_en"),
+    #         context_fr=data.get("context_fr"),
+    #     )
 
-        try:
-            # Add the term to the session
-            db.session.add(term)
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            return (
-                jsonify({"error": "This term already exists."}),
-                400,
-            )
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     try:
+    #         # Add the term to the session
+    #         db.session.add(term)
+    #         db.session.commit()
+    #     except IntegrityError:
+    #         db.session.rollback()
+    #         return (
+    #             jsonify({"error": "This term already exists."}),
+    #             400,
+    #         )
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-        return (
-            jsonify({"message": "Term created successfully!", "term": term.to_dict()}),
-            201,
-        )
+    #     return (
+    #         jsonify({"message": "Term created successfully!", "term": term.to_dict()}),
+    #         201,
+    #     )
 
-    @app.route("/api/terms", methods=["GET"])
-    def get_terms() -> Tuple[Response, Literal[200]]:
-        """
-        Get all terms from the glossary database.
-        Public endpoint - no authentication required.
-        """
-        terms = Term.query.all()
-        return jsonify([term.to_dict() for term in terms]), 200
+    # @app.route("/api/terms", methods=["GET"])
+    # def get_terms() -> Tuple[Response, Literal[200]]:
+    #     """
+    #     Get all terms from the glossary database.
+    #     Public endpoint - no authentication required.
+    #     """
+    #     terms = Term.query.all()
+    #     return jsonify([term.to_dict() for term in terms]), 200
 
-    @app.route("/api/terms/<int:tid>", methods=["GET"])
-    def get_term(
-        tid: int,
-    ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
-        """
-        Retrieves a single Term by its ID.
+    # @app.route("/api/terms/<int:tid>", methods=["GET"])
+    # def get_term(
+    #     tid: int,
+    # ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+    #     """
+    #     Retrieves a single Term by its ID.
 
-        Input:  (int) tid   | the ID of the term to retrieve.
-        Output: (Response)  | a JSON response with the Term details or an error message.
-        """
-        try:
-            # Fetch the Term with the given term ID
-            term = Term.query.get(tid)
-            if not term:
-                return jsonify({"error": f"Term with ID {tid} not found."}), 404
+    #     Input:  (int) tid   | the ID of the term to retrieve.
+    #     Output: (Response)  | a JSON response with the Term details or an error message.
+    #     """
+    #     try:
+    #         # Fetch the Term with the given term ID
+    #         term = Term.query.get(tid)
+    #         if not term:
+    #             return jsonify({"error": f"Term with ID {tid} not found."}), 404
 
-            return jsonify(term.to_dict()), 200
+    #         return jsonify(term.to_dict()), 200
 
-        except Exception as e:
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     except Exception as e:
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-    @app.route("/api/terms/<int:tid>", methods=["PUT"])
-    def update_term(
-        tid: int,
-    ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
-        """
-        Update a term in the glossary database.
-        Only admins can update terms.
-        """
-        term = Term.query.get(tid)
-        if not term:
-            return jsonify({"error": "Term not found"}), 404
+    # @app.route("/api/terms/<int:tid>", methods=["PUT"])
+    # def update_term(
+    #     tid: int,
+    # ) -> Tuple[Response, Union[Literal[200], Literal[400], Literal[404], Literal[500]]]:
+    #     """
+    #     Update a term in the glossary database.
+    #     Only admins can update terms.
+    #     """
+    #     term = Term.query.get(tid)
+    #     if not term:
+    #         return jsonify({"error": "Term not found"}), 404
 
-        # Get the JSON data from the request body
-        data = request.get_json()
+    #     # Get the JSON data from the request body
+    #     data = request.get_json()
 
-        if not data:
-            return jsonify({"error": "Invalid JSON data"}), 400
+    #     if not data:
+    #         return jsonify({"error": "Invalid JSON data"}), 400
 
-        # Validate required fields
-        english_term: str = data.get("english_term")
-        french_term: str = data.get("french_term")
+    #     # Validate required fields
+    #     english_term: str = data.get("english_term")
+    #     french_term: str = data.get("french_term")
 
-        if not english_term:
-            return jsonify({"error": "English Term is required."}), 400
-        if not french_term:
-            return jsonify({"error": "French Term is required."}), 400
+    #     if not english_term:
+    #         return jsonify({"error": "English Term is required."}), 400
+    #     if not french_term:
+    #         return jsonify({"error": "French Term is required."}), 400
 
-        if english_term is not None and not isinstance(english_term, str):
-            return (
-                jsonify(
-                    {"error": "Invalid data type: English term should be a string."}
-                ),
-                400,
-            )
-        if french_term is not None and not isinstance(french_term, str):
-            return (
-                jsonify(
-                    {"error": "Invalid data type: French term should be a string."}
-                ),
-                400,
-            )
+    #     if english_term is not None and not isinstance(english_term, str):
+    #         return (
+    #             jsonify(
+    #                 {"error": "Invalid data type: English term should be a string."}
+    #             ),
+    #             400,
+    #         )
+    #     if french_term is not None and not isinstance(french_term, str):
+    #         return (
+    #             jsonify(
+    #                 {"error": "Invalid data type: French term should be a string."}
+    #             ),
+    #             400,
+    #         )
 
-        try:
-            # Update the term fields
-            if english_term is not None:
-                term.english_term = english_term.strip()
-            if french_term is not None:
-                term.french_term = french_term.strip()
+    #     try:
+    #         # Update the term fields
+    #         if english_term is not None:
+    #             term.english_term = english_term.strip()
+    #         if french_term is not None:
+    #             term.french_term = french_term.strip()
 
-            if "domain_en" in data:
-                term.domain_en = data.get("domain_en")
-            if "domain_fr" in data:
-                term.domain_fr = data.get("domain_fr")
+    #         if "domain_en" in data:
+    #             term.domain_en = data.get("domain_en")
+    #         if "domain_fr" in data:
+    #             term.domain_fr = data.get("domain_fr")
 
-            if "subdomains_en" in data:
-                term.subdomains_en = data.get("subdomains_en")
-            if "subdomains_fr" in data:
-                term.subdomains_fr = data.get("subdomains_fr")
+    #         if "subdomains_en" in data:
+    #             term.subdomains_en = data.get("subdomains_en")
+    #         if "subdomains_fr" in data:
+    #             term.subdomains_fr = data.get("subdomains_fr")
 
-            if "semantic_label_en" in data:
-                term.semantic_label_en = data.get("semantic_label_en")
-            if "semantic_label_fr" in data:
-                term.semantic_label_fr = data.get("semantic_label_fr")
+    #         if "semantic_label_en" in data:
+    #             term.semantic_label_en = data.get("semantic_label_en")
+    #         if "semantic_label_fr" in data:
+    #             term.semantic_label_fr = data.get("semantic_label_fr")
 
-            if "variant_en" in data:
-                term.variant_en = data.get("variant_en")
-            if "variant_fr" in data:
-                term.variant_fr = data.get("variant_fr")
+    #         if "variant_en" in data:
+    #             term.variant_en = data.get("variant_en")
+    #         if "variant_fr" in data:
+    #             term.variant_fr = data.get("variant_fr")
 
-            if "near_synonym_en" in data:
-                term.near_synonym_en = data.get("near_synonym_en")
-            if "near_synonym_fr" in data:
-                term.near_synonym_fr = data.get("near_synonym_fr")
+    #         if "near_synonym_en" in data:
+    #             term.near_synonym_en = data.get("near_synonym_en")
+    #         if "near_synonym_fr" in data:
+    #             term.near_synonym_fr = data.get("near_synonym_fr")
 
-            if "definition_en" in data:
-                term.definition_en = data.get("definition_en")
-            if "definition_fr" in data:
-                term.definition_fr = data.get("definition_fr")
+    #         if "definition_en" in data:
+    #             term.definition_en = data.get("definition_en")
+    #         if "definition_fr" in data:
+    #             term.definition_fr = data.get("definition_fr")
 
-            if "syntactic_cooccurrence_en" in data:
-                term.syntactic_cooccurrence_en = data.get("syntactic_cooccurrence_en")
-            if "syntactic_cooccurrence_fr" in data:
-                term.syntactic_cooccurrence_fr = data.get("syntactic_cooccurrence_fr")
+    #         if "syntactic_cooccurrence_en" in data:
+    #             term.syntactic_cooccurrence_en = data.get("syntactic_cooccurrence_en")
+    #         if "syntactic_cooccurrence_fr" in data:
+    #             term.syntactic_cooccurrence_fr = data.get("syntactic_cooccurrence_fr")
 
-            if "lexical_relations_en" in data:
-                term.lexical_relations_en = data.get("lexical_relations_en")
-            if "lexical_relations_fr" in data:
-                term.lexical_relations_fr = data.get("lexical_relations_fr")
+    #         if "lexical_relations_en" in data:
+    #             term.lexical_relations_en = data.get("lexical_relations_en")
+    #         if "lexical_relations_fr" in data:
+    #             term.lexical_relations_fr = data.get("lexical_relations_fr")
 
-            if "note_en" in data:
-                term.note_en = data.get("note_en")
-            if "note_fr" in data:
-                term.note_fr = data.get("note_fr")
+    #         if "note_en" in data:
+    #             term.note_en = data.get("note_en")
+    #         if "note_fr" in data:
+    #             term.note_fr = data.get("note_fr")
 
-            if "not_to_be_confused_with_en" in data:
-                term.not_to_be_confused_with_en = data.get("not_to_be_confused_with_en")
-            if "not_to_be_confused_with_fr" in data:
-                term.not_to_be_confused_with_fr = data.get("not_to_be_confused_with_fr")
+    #         if "not_to_be_confused_with_en" in data:
+    #             term.not_to_be_confused_with_en = data.get("not_to_be_confused_with_en")
+    #         if "not_to_be_confused_with_fr" in data:
+    #             term.not_to_be_confused_with_fr = data.get("not_to_be_confused_with_fr")
 
-            if "frequent_expression_en" in data:
-                term.frequent_expression_en = data.get("frequent_expression_en")
-            if "frequent_expression_fr" in data:
-                term.frequent_expression_fr = data.get("frequent_expression_fr")
+    #         if "frequent_expression_en" in data:
+    #             term.frequent_expression_en = data.get("frequent_expression_en")
+    #         if "frequent_expression_fr" in data:
+    #             term.frequent_expression_fr = data.get("frequent_expression_fr")
 
-            if "phraseology_en" in data:
-                term.phraseology_en = data.get("phraseology_en")
-            if "phraseology_fr" in data:
-                term.phraseology_fr = data.get("phraseology_fr")
+    #         if "phraseology_en" in data:
+    #             term.phraseology_en = data.get("phraseology_en")
+    #         if "phraseology_fr" in data:
+    #             term.phraseology_fr = data.get("phraseology_fr")
 
-            if "context_en" in data:
-                term.context_en = data.get("context_en")
-            if "context_fr" in data:
-                term.context_fr = data.get("context_fr")
+    #         if "context_en" in data:
+    #             term.context_en = data.get("context_en")
+    #         if "context_fr" in data:
+    #             term.context_fr = data.get("context_fr")
 
-            db.session.commit()
+    #         db.session.commit()
 
-            return (
-                jsonify(
-                    {"message": "Term updated successfully!", "term": term.to_dict()}
-                ),
-                200,
-            )
-        except IntegrityError:
-            db.session.rollback()
-            return jsonify({"error": "Integrity error occurred."}), 400
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #         return (
+    #             jsonify(
+    #                 {"message": "Term updated successfully!", "term": term.to_dict()}
+    #             ),
+    #             200,
+    #         )
+    #     except IntegrityError:
+    #         db.session.rollback()
+    #         return jsonify({"error": "Integrity error occurred."}), 400
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
-    @app.route("/api/terms/<int:tid>", methods=["DELETE"])
-    def delete_term(
-        tid: int,
-    ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
-        """
-        Delete a term from the glossary database.
-        Only admins can delete terms.
-        """
-        try:
-            term = Term.query.get(tid)
-            if not term:
-                return jsonify({"error": f"Term with ID {tid} not found."}), 404
+    # @app.route("/api/terms/<int:tid>", methods=["DELETE"])
+    # def delete_term(
+    #     tid: int,
+    # ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+    #     """
+    #     Delete a term from the glossary database.
+    #     Only admins can delete terms.
+    #     """
+    #     try:
+    #         term = Term.query.get(tid)
+    #         if not term:
+    #             return jsonify({"error": f"Term with ID {tid} not found."}), 404
 
-            db.session.delete(term)
-            db.session.commit()
+    #         db.session.delete(term)
+    #         db.session.commit()
 
-            return jsonify({"message": "Term deleted successfully!"}), 200
+    #         return jsonify({"message": "Term deleted successfully!"}), 200
 
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     ################################################
     # USER ROUTES

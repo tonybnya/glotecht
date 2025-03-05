@@ -1313,12 +1313,12 @@ input:checked + .toggle-bg {
   max-height: 15rem;
 }
 
-.min-h-screen {
-  min-height: 100vh;
-}
-
 .min-h-\[100px\] {
   min-height: 100px;
+}
+
+.min-h-screen {
+  min-height: 100vh;
 }
 
 .w-1\/2 {
@@ -1929,6 +1929,10 @@ input:checked + .toggle-bg {
   font-family: Inter, sans-serif;
 }
 
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
 .text-2xl {
   font-size: 1.5rem;
   line-height: 2rem;
@@ -2080,6 +2084,11 @@ input:checked + .toggle-bg {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+
+.text-red-600 {
+  --tw-text-opacity: 1;
+  color: rgb(224 36 36 / var(--tw-text-opacity));
 }
 
 .underline {
