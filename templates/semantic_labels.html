@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="text-gray-200 z-30 w-full font-inter">
+    <div class="p-5 flex items-center justify-center bg-black px-40">
+      <a
+        href="/"
+        class="text-xl font-bold flex items-center lg:ml-2.5"
+        aria-label="GloTechT Home"
+      >
+        <img
+          src="/img/brain.png"
+          class="h-6 mr-2 saturate-200 animate-pulse drop-shadow-other brightness-50"
+          alt="DTechGloss Logo"
+        />
+        <span class="self-center whitespace-nowrap font-liter">GloTechT</span>
+      </a>
+    </div>
+</header>
+
+<div class="flex overflow-hidden bg-gray-50 min-h-screen font-liter">
+  <div id="main-content" class="h-full w-full bg-gray-50 relative overflow-y-auto">
+    <main class="max-w-7xl mx-auto">
+      <div class="pt-6 px-4">
+        <div class="w-full grid lg:grid-cols-2 gap-4 mb-4">
+          <!-- English Column -->
+          <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold text-[#296F9A] mb-2">Semantic Labels (EN)</h3>
+                <span class="text-base font-normal text-gray-500">English semantic labels</span>
+              </div>
+            </div>
+            <div class="flex flex-col mt-8">
+              <div class="overflow-x-auto rounded-lg">
+                <div class="align-middle inline-block min-w-full">
+                  <div class="shadow overflow-hidden sm:rounded-lg">
+                    <div id="english-labels" class="divide-y divide-gray-200">
+                      <!-- English labels will be populated here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- French Column -->
+          <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold text-[#A32A34] mb-2">Étiquettes Sémantiques (FR)</h3>
+                <span class="text-base font-normal text-gray-500">Étiquettes sémantiques en français</span>
+              </div>
+            </div>
+            <div class="flex flex-col mt-8">
+              <div class="overflow-x-auto rounded-lg">
+                <div class="align-middle inline-block min-w-full">
+                  <div class="shadow overflow-hidden sm:rounded-lg">
+                    <div id="french-labels" class="divide-y divide-gray-200">
+                      <!-- French labels will be populated here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bottom-0 z-30 w-full bg-gray-50 font-liter">
+        <div
+          class="bg-white max-sm:flex max-sm:flex-col max-sm:items-center md:flex md:items-center md:justify-between shadow rounded-lg p-4 md:p-6 xl:p-8 my-6 mx-4"
+        >
+          <nav aria-label="Footer Navigation">
+            <ul class="flex items-center flex-wrap mb-6 md:mb-0">
+              <li>
+                <a
+                  href="{{ url_for('docs') }}"
+                  target="_blank"
+                  class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6"
+                  >Termes & Conditions</a
+                >
+              </li>
+              <li>
+                <a
+                  href="{{ url_for('docs') }}"
+                  target="_blank"
+                  class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6"
+                  >Licenses</a
+                >
+              </li>
+              <li>
+                <a
+                  href="{{ url_for('index') }}"
+                  target="_blank"
+                  class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6"
+                  >Accueil</a
+                >
+              </li>
+              <li>
+                <a
+                  href="{{ url_for('contact') }}"
+                  target="_blank"
+                  class="text-sm font-normal text-gray-500 mr-4 md:mr-6 hover:underline"
+                  >Contact</a
+                >
+              </li>
+              <li>
+                <a href="#" class="text-sm font-normal text-gray-500 hover:underline"
+                  >Glossaire</a
+                >
+              </li>
+            </ul>
+          </nav>
+          <div class="flex sm:justify-center space-x-6">
+            <a
+              href="https://www.linkedin.com/in/dieudonn%C3%A9-toukam-11519336/"
+              target="_blank"
+              class="hover:text-[#296F9A] w-5 h-5"
+              ><i class="fa-brands fa-linkedin"></i
+            ></a>
+            <a
+              href="https://web.facebook.com/deotouks"
+              target="_blank"
+              class="hover:text-[#296F9A] w-5 h-5"
+            >
+              <i class="fa-brands fa-facebook"></i>
+            </a>
+            <a
+              href="https://www.instagram.com/deotouks/"
+              target="_blank"
+              class="hover:text-[#296F9A] w-5 h-5"
+            >
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a
+              href="https://x.com/DieudonnToukam"
+              target="_blank"
+              class="hover:text-[#296F9A] w-5 h-5"
+            >
+              <i class="fa-brands fa-x-twitter"></i>
+            </a>
+          </div>
+        </div>
+        <p class="text-center text-sm my-5">
+          &copy; <span id="currentYear"></span> • Tous Droits Réservés •
+        </p>
+      </footer>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const response = await fetch('/api/terms/semantic-labels');
+    const data = await response.json();
+
+    const englishContainer = document.getElementById('english-labels');
+    const frenchContainer = document.getElementById('french-labels');
+
+    data.forEach(label => {
+      // Create English label element
+      const enDiv = document.createElement('div');
+      enDiv.className = 'py-3 px-4 hover:bg-gray-50';
+      enDiv.innerHTML = `
+        <p class="text-sm font-medium text-gray-900">
+          ${label.EN}
+        </p>
+      `;
+
+      // Create French label element
+      const frDiv = document.createElement('div');
+      frDiv.className = 'py-3 px-4 hover:bg-gray-50';
+      frDiv.innerHTML = `
+        <p class="text-sm font-medium text-gray-900">
+          ${label.FR}
+        </p>
+      `;
+
+      englishContainer.appendChild(enDiv);
+      frenchContainer.appendChild(frDiv);
+    });
+  } catch (error) {
+    console.error('Error fetching semantic labels:', error);
+  }
+});
+</script>
+{% endblock %}
