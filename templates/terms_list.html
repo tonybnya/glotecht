@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="text-gray-200 z-30 w-full font-inter">
+    <div class="p-5 flex items-center justify-center bg-black px-40">
+      <a
+        href="/"
+        class="text-xl font-bold flex items-center lg:ml-2.5"
+        aria-label="GloTechT Home"
+      >
+        <img
+          src="/img/brain.png"
+          class="h-6 mr-2 saturate-200 animate-pulse drop-shadow-other brightness-50"
+          alt="DTechGloss Logo"
+        />
+        <span class="self-center whitespace-nowrap font-liter">GloTechT</span>
+      </a>
+    </div>
+</header>
+
+<div class="flex overflow-hidden bg-gray-50 min-h-screen font-liter">
+  <div id="main-content" class="h-full w-full bg-gray-50 relative overflow-y-auto">
+    <main class="max-w-7xl mx-auto">
+      <div class="pt-6 px-4">
+        <div class="w-full grid lg:grid-cols-2 gap-4 mb-4">
+          <!-- English Column -->
+          <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold text-[#296F9A] mb-2">Terms List (EN)</h3>
+                <span class="text-base font-normal text-gray-500">English terms</span>
+              </div>
+            </div>
+            <div class="flex flex-col mt-8">
+              <div class="overflow-x-auto rounded-lg">
+                <div class="align-middle inline-block min-w-full">
+                  <div class="shadow overflow-hidden sm:rounded-lg">
+                    <div id="english-terms" class="divide-y divide-gray-200">
+                      <!-- English terms will be populated here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- French Column -->
+          <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold text-[#A32A34] mb-2">Liste des Termes (FR)</h3>
+                <span class="text-base font-normal text-gray-500">Termes en français</span>
+              </div>
+            </div>
+            <div class="flex flex-col mt-8">
+              <div class="overflow-x-auto rounded-lg">
+                <div class="align-middle inline-block min-w-full">
+                  <div class="shadow overflow-hidden sm:rounded-lg">
+                    <div id="french-terms" class="divide-y divide-gray-200">
+                      <!-- French terms will be populated here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="pagination-container" class="flex justify-center items-center space-x-2 mt-6 mb-8">
+          <!-- Pagination will be populated here -->
+        </div>
+      </div>
+    </main>
+
+    <footer class="bottom-0 z-30 w-full bg-gray-50 font-liter">
+        <div class="bg-white max-sm:flex max-sm:flex-col max-sm:items-center md:flex md:items-center md:justify-between shadow rounded-lg p-4 md:p-6 xl:p-8 my-6 mx-4">
+          <nav aria-label="Footer Navigation">
+            <ul class="flex items-center flex-wrap mb-6 md:mb-0">
+              <li>
+                <a href="{{ url_for('docs') }}" target="_blank" class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6">Termes & Conditions</a>
+              </li>
+              <li>
+                <a href="{{ url_for('docs') }}" target="_blank" class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6">Licenses</a>
+              </li>
+              <li>
+                <a href="{{ url_for('index') }}" target="_blank" class="text-sm font-normal text-gray-500 hover:underline mr-4 md:mr-6">Accueil</a>
+              </li>
+              <li>
+                <a href="{{ url_for('contact') }}" target="_blank" class="text-sm font-normal text-gray-500 mr-4 md:mr-6 hover:underline">Contact</a>
+              </li>
+              <li>
+                <a href="#" class="text-sm font-normal text-gray-500 hover:underline">Glossaire</a>
+              </li>
+            </ul>
+          </nav>
+          <div class="flex sm:justify-center space-x-6">
+            <a href="https://www.linkedin.com/in/dieudonn%C3%A9-toukam-11519336/" target="_blank" class="hover:text-[#296F9A] w-5 h-5">
+              <i class="fa-brands fa-linkedin"></i>
+            </a>
+            <a href="https://web.facebook.com/deotouks" target="_blank" class="hover:text-[#296F9A] w-5 h-5">
+              <i class="fa-brands fa-facebook"></i>
+            </a>
+            <a href="https://www.instagram.com/deotouks/" target="_blank" class="hover:text-[#296F9A] w-5 h-5">
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a href="https://x.com/DieudonnToukam" target="_blank" class="hover:text-[#296F9A] w-5 h-5">
+              <i class="fa-brands fa-x-twitter"></i>
+            </a>
+          </div>
+        </div>
+        <p class="text-center text-sm my-5">
+          &copy; <span id="currentYear"></span> • Tous Droits Réservés •
+        </p>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  let allTerms = [];
+
+  try {
+    const response = await fetch('/api/terms/list');
+    allTerms = await response.json();
+
+    const englishContainer = document.getElementById('english-terms');
+    const frenchContainer = document.getElementById('french-terms');
+
+    function renderPage(pageNum) {
+      englishContainer.innerHTML = '';
+      frenchContainer.innerHTML = '';
+
+      const startIndex = (pageNum - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const pageTerms = allTerms.slice(startIndex, endIndex);
+
+      pageTerms.forEach(term => {
+        // Create English term element
+        const enDiv = document.createElement('div');
+        enDiv.className = 'py-3 px-4 hover:bg-gray-50 flex items-center min-h-[48px]';
+        enDiv.innerHTML = `
+          <p class="text-sm font-medium text-gray-900 w-full whitespace-normal break-words">
+            ${term.EN}
+          </p>
+        `;
+
+        // Create French term element
+        const frDiv = document.createElement('div');
+        frDiv.className = 'py-3 px-4 hover:bg-gray-50 flex items-center min-h-[48px]';
+        frDiv.innerHTML = `
+          <p class="text-sm font-medium text-gray-900 w-full whitespace-normal break-words">
+            ${term.FR}
+          </p>
+        `;
+
+        englishContainer.appendChild(enDiv);
+        frenchContainer.appendChild(frDiv);
+      });
+
+      // Update pagination buttons state
+      document.querySelectorAll('.page-button').forEach(btn => {
+        btn.classList.toggle('bg-gray-200', parseInt(btn.dataset.page) === currentPage);
+      });
+    }
+
+    // Replace the pagination container creation with:
+    const paginationContainer = document.getElementById('pagination-container');
+    
+    // Rest of the pagination code remains the same
+    const totalPages = Math.ceil(allTerms.length / ITEMS_PER_PAGE);
+    
+    // Previous button
+    const prevButton = document.createElement('button');
+    prevButton.className = 'px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200';
+    prevButton.innerHTML = '&larr;';
+    prevButton.onclick = () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage(currentPage);
+      }
+    };
+    paginationContainer.appendChild(prevButton);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+      const pageButton = document.createElement('button');
+      pageButton.className = 'page-button px-3 py-1 rounded-md hover:bg-gray-200';
+      pageButton.textContent = i;
+      pageButton.dataset.page = i;
+      pageButton.onclick = () => {
+        currentPage = i;
+        renderPage(currentPage);
+      };
+      paginationContainer.appendChild(pageButton);
+    }
+
+    // Next button
+    const nextButton = document.createElement('button');
+    nextButton.className = 'px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200';
+    nextButton.innerHTML = '&rarr;';
+    nextButton.onclick = () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage(currentPage);
+      }
+    };
+    paginationContainer.appendChild(nextButton);
+
+    // Add pagination to the page
+    // Remove this line since we're using the existing container
+    // document.querySelector('main').appendChild(paginationContainer);
+
+    // Initial render
+    renderPage(1);
+
+  } catch (error) {
+    console.error('Error fetching terms list:', error);
+  }
+});
+</script>
+
+{% endblock %}

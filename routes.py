@@ -178,6 +178,16 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         """Documentation page."""
         return render_template("docs.html")
 
+    @app.route("/semantic-labels")
+    def semantic_labels() -> str:
+        """Semantic labels page."""
+        return render_template("semantic_labels.html")
+
+    @app.route("/terms-list")
+    def terms_list() -> str:
+        """Terms list page."""
+        return render_template("terms_list.html")
+
     @app.route("/api/terms/search", methods=["GET"])
     @cross_origin()
     def search_terms() -> Tuple[Response, int]:
@@ -893,3 +903,54 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     def page_not_found(e):
         """404 - Not Found page."""
         return render_template("404.html"), 404
+
+    @app.route("/api/terms/list", methods=["GET"])
+    def get_terms_list():
+        try:
+            # Query only the english and french terms, ordered by english term
+            terms = db.session.query(
+                Term.english_term, 
+                Term.french_term
+            ).order_by(Term.english_term).all()
+            
+            # Format the results as requested
+            terms_list = [
+                {
+                    "EN": term.english_term,
+                    "FR": term.french_term
+                }
+                for term in terms
+            ]
+            
+            return jsonify(terms_list), 200
+            
+        except Exception as e:
+            app.logger.error(f"Error retrieving terms list: {str(e)}")
+            return jsonify({"error": "Failed to retrieve terms list"}), 500
+
+    @app.route("/api/terms/semantic-labels", methods=["GET"])
+    def get_semantic_labels():
+        try:
+            # Query only the semantic labels, ordered by English label
+            labels = db.session.query(
+                Term.semantic_label_en,
+                Term.semantic_label_fr
+            ).filter(
+                Term.semantic_label_en.isnot(None),  # Filter out NULL values
+                Term.semantic_label_fr.isnot(None)
+            ).distinct().order_by(Term.semantic_label_en).all()
+            
+            # Format the results
+            labels_list = [
+                {
+                    "EN": label.semantic_label_en,
+                    "FR": label.semantic_label_fr
+                }
+                for label in labels
+            ]
+            
+            return jsonify(labels_list), 200
+            
+        except Exception as e:
+            app.logger.error(f"Error retrieving semantic labels: {str(e)}")
+            return jsonify({"error": "Failed to retrieve semantic labels"}), 500
