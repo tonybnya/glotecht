@@ -64,9 +64,30 @@
             </a>
             <a
               href="{{ url_for('admin.logout') }}"
-              class="btn btn-outline-danger text-dark"
+              class="btn btn-outline-danger text-dark mb-2"
             >
               <i class="fa fa-sign-out mr-2"></i>Déconnexion
+            </a>
+            <a
+              href="/api/terms"
+              download="glotecht_terms.json"
+              class="btn btn-outline-primary text-dark mb-2"
+            >
+              <i class="fa fa-download mr-2"></i>Télécharger JSON
+            </a>
+            <a
+              href="/api/terms/xml"
+              download="glotecht_terms.xml"
+              class="btn btn-outline-success text-dark mb-2"
+            >
+              <i class="fa fa-file-text mr-2"></i>Télécharger XML
+            </a>
+            <a
+              href="/api/terms/csv"
+              download="glotecht_terms.csv"
+              class="btn btn-outline-info text-dark"
+            >
+              <i class="fa fa-file-excel-o mr-2"></i>Télécharger CSV
             </a>
           </div>
         </div>

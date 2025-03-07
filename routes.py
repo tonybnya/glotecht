@@ -5,6 +5,8 @@ This file defines the routes/endpoints for the API.
 from __future__ import annotations
 
 from functools import wraps
+from io import StringIO
+import csv
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 from flask import (
@@ -438,14 +440,43 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     #         201,
     #     )
 
-    # @app.route("/api/terms", methods=["GET"])
-    # def get_terms() -> Tuple[Response, Literal[200]]:
-    #     """
-    #     Get all terms from the glossary database.
-    #     Public endpoint - no authentication required.
-    #     """
-    #     terms = Term.query.all()
-    #     return jsonify([term.to_dict() for term in terms]), 200
+    @app.route("/api/terms", methods=["GET"])
+    def get_terms() -> Tuple[Response, Literal[200]]:
+        """
+        Get all terms from the glossary database.
+        Public endpoint - no authentication required.
+        """
+        terms = Term.query.all()
+        return jsonify([term.to_dict() for term in terms]), 200
+
+    @app.route("/api/terms/xml", methods=["GET"])
+    def get_terms_xml() -> Response:
+        """Get all terms in XML format."""
+        terms = Term.query.all()
+        
+        # Create XML structure
+        xml_data = ['<?xml version="1.0" encoding="UTF-8"?>']
+        xml_data.append('<terms>')
+        
+        for term in terms:
+            xml_data.append('  <term>')
+            term_dict = term.to_dict()
+            for key, value in term_dict.items():
+                if value:  # Only include non-None values
+                    # Escape special characters and wrap in CDATA if needed
+                    if isinstance(value, str) and any(char in value for char in '<>&'):
+                        value = f'<![CDATA[{value}]]>'
+                    xml_data.append(f'    <{key}>{value}</{key}>')
+            xml_data.append('  </term>')
+        
+        xml_data.append('</terms>')
+        
+        # Join all lines and create response
+        xml_content = '\n'.join(xml_data)
+        response = Response(xml_content, mimetype='application/xml')
+        response.headers['Content-Disposition'] = 'attachment; filename=glotecht_terms.xml'
+        
+        return response
 
     # @app.route("/api/terms/<int:tid>", methods=["GET"])
     # def get_term(
@@ -954,3 +985,31 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         except Exception as e:
             app.logger.error(f"Error retrieving semantic labels: {str(e)}")
             return jsonify({"error": "Failed to retrieve semantic labels"}), 500
+
+    @app.route("/api/terms/csv")
+    def get_terms_csv() -> Response:
+        """Get all terms in CSV format."""
+        terms = Term.query.all()
+        
+        # Convert to list of dictionaries
+        terms_list = [term.to_dict() for term in terms]
+        
+        if not terms_list:
+            return Response("No terms found", mimetype='text/csv')
+        
+        # Get headers from the first term
+        headers = list(terms_list[0].keys())
+        
+        # Create CSV in memory
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=headers)
+        
+        # Write headers and data
+        writer.writeheader()
+        writer.writerows(terms_list)
+        
+        # Create response
+        response = Response(output.getvalue(), mimetype='text/csv')
+        response.headers['Content-Disposition'] = 'attachment; filename=glotecht_terms.csv'
+        
+        return response
