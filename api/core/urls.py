@@ -25,7 +25,7 @@ router = DefaultRouter()
 router.register(r"challenges", ChallengeViewSet)
 
 urlpatterns = [
-    # path("create-superuser/", create_superuser_api, name="create_superuser_api"),
+    path("create-superuser/", create_superuser_api, name="create_superuser_api"),
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
 ]
