@@ -37,6 +37,7 @@ GloTechT-improvements.md
 *.ntvs*
 *.njsproj
 *.sln
+*.sql
 *.sw?
 
 create-schema.txt
