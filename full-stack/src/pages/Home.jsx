@@ -64,6 +64,7 @@ const Home = () => {
               icon={challenge.icon}
               title={challenge.title}
               description={challenge.description}
+              src={challenge.src}
               tags={challenge.tags}
             />
           ))

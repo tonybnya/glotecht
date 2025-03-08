@@ -1,7 +1,7 @@
 import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CardChallenge = ({ id, icon, title, description, tags = [] }) => {
+const CardChallenge = ({ id, icon, title, description, src, tags = [] }) => {
   return (
     <div className="max-w-sm p-6 bg-[#030710] rounded-lg shadow-sm">
       <div className="flex items-center justify-between pb-4">
@@ -10,7 +10,9 @@ const CardChallenge = ({ id, icon, title, description, tags = [] }) => {
           alt={`Icon for ${title}`}
           className="h-8 w-8 object-contain"
         />
-        <CheckCircle className="w-4 h-4 text-emerald-500" />
+        <a target="_blank" href={src}>
+          <CheckCircle className="w-4 h-4 text-emerald-500 animate-pulse hover:scale-110" />
+        </a>
       </div>
       <div>
         <h5 className="mb-2 text-2xl font-semibold tracking-tight text-gray-300">
