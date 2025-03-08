@@ -11,7 +11,7 @@ const CardChallenge = ({ id, icon, title, description, src, tags = [] }) => {
           className="h-8 w-8 object-contain"
         />
         <a target="_blank" href={src}>
-          <CheckCircle className="w-4 h-4 text-emerald-500 animate-pulse hover:scale-110" />
+          <CheckCircle className="w-4 h-4 text-emerald-500 animate-pulse hover:scale-105" />
         </a>
       </div>
       <div>
