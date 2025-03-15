@@ -1,4 +1,5 @@
 // Constants and Configuration
+// Update the SEARCH_TYPES configuration
 const CONFIG = {
   API_URL: "http://127.0.0.1:5003/api/terms/search",
   DEBOUNCE_DELAY: 300,
@@ -8,17 +9,30 @@ const CONFIG = {
     { text: "text-white", bg: "bg-black" },
   ],
   SEARCH_TYPES: {
-    term: { field: "english_term", altField: "french_term" },
-    synonym: { field: "near_synonym_en", altField: "near_synonym_fr" },
+    term: { 
+      field: "english_term", 
+      altField: "french_term",
+      exact: true 
+    },
+    semantic_label: { 
+      field: "semantic_label_en", 
+      altField: "semantic_label_fr",
+      exact: false
+    },
+    synonym: { 
+      field: "near_synonym_en", 
+      altField: "near_synonym_fr",
+      exact: false
+    },
     subdomain: {
       field: "subdomains_en",
       altField: "subdomains_fr",
       isArray: true,
-    },
-    lexical_relation: {
-      field: "lexical_relations_en",
-      altField: "lexical_relations_fr",
-      isComplex: true,
+      exact: false,
+      values: {
+        en: ['Artificial Intelligence', 'Big Data', 'Blockchain'],
+        fr: ['Intelligence Artificielle', 'Big Data', 'Blockchain']
+      }
     },
   },
 };
@@ -175,7 +189,7 @@ const TemplateRenderer = {
       <div id="${id}" class="bg-white shadow-sm rounded-md text-md h-full w-full p-6 ${fieldClass}-${lang}">
         <div class="flex flex-col items-start gap-1 mb-4">
           <div class="w-full flex justify-between items-center">
-            <h3 class="text-xl max-sm:text-sm font-bold leading-none text-gray-500">
+            <h3 class="text-md max-sm:text-sm font-bold leading-none text-gray-500">
               <span class="text-[#A32A34] font-bold">${TextFormatter.format(
                 item[`${lang === "en" ? "english" : "french"}_term`]
               )}</span>
@@ -412,32 +426,40 @@ class SearchManager {
     });
   }
 
+  // Update the performSearch method in SearchManager class
   async performSearch() {
-    const searchTerm = this.searchInput.value.trim();
-    if (!searchTerm) {
-      this.resultsContainer.innerHTML = "";
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${CONFIG.API_URL}?q=${encodeURIComponent(searchTerm)}&type=${this.searchType}`,
-        {
-          headers: { Accept: "application/json" },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Quelque chose n'a pas marché.");
+      const searchTerm = this.searchInput.value.trim();
+      if (!searchTerm) {
+        this.resultsContainer.innerHTML = "";
+        return;
       }
-
-      const data = await response.json();
-      this.displayResults(data, searchTerm);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      this.resultsContainer.innerHTML = `
-        <p class="text-center">Une erreur s'est produite. Veuillez réessayer.</p>`;
-    }
+  
+      try {
+        const searchConfig = CONFIG.SEARCH_TYPES[this.searchType];
+        const params = new URLSearchParams({
+          q: searchTerm,
+          type: this.searchType,
+          exact: searchConfig.exact || false,
+          field: searchConfig.field,
+          altField: searchConfig.altField,
+          isArray: searchConfig.isArray || false
+        });
+  
+        const response = await fetch(`${CONFIG.API_URL}?${params}`, {
+          headers: { Accept: "application/json" },
+        });
+  
+        if (!response.ok) {
+          throw new Error("Quelque chose n'a pas marché.");
+        }
+  
+        const data = await response.json();
+        this.displayResults(data, searchTerm);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        this.resultsContainer.innerHTML = `
+          <p class="text-center">Une erreur s'est produite. Veuillez réessayer.</p>`;
+      }
   }
 
   displayResults(results, searchTerm) {
@@ -451,132 +473,235 @@ class SearchManager {
       return;
     }
 
-    // Update container class for Swiper
-    this.resultsContainer.className = "swiper w-full max-w-[95%] mx-auto";
+    // Reset container class - changed from grid to flex layout with full width
+    this.resultsContainer.className = "w-full my-4 px-4 max-w-full";
 
-    // Create Swiper structure
-    this.resultsContainer.innerHTML = `
-      <div class="swiper-wrapper">
-        ${results
-          .map((item) => {
-            // Define field mappings with their corresponding API field names
-            const fieldMappings = {
-              variant: { en: "variant_en", fr: "variant_fr" },
-              synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
-              definition: { en: "definition_en", fr: "definition_fr" },
-              syntactic: {
-                en: "syntactic_cooccurrence_en",
-                fr: "syntactic_cooccurrence_fr",
-              },
-              lexical: {
-                en: "lexical_relations_en",
-                fr: "lexical_relations_fr",
-              },
-              note: { en: "note_en", fr: "note_fr" },
-              confused: {
-                en: "note_to_be_confused_with_en",
-                fr: "note_to_be_confused_with_fr",
-              },
-              expression: {
-                en: "frequent_expression_en",
-                fr: "frequent_expression_fr",
-              },
-              phraseology: { en: "phraseology_en", fr: "phraseology_fr" },
-              context: { en: "context_en", fr: "context_fr" },
-            };
+    // Constants for pagination - changed to 1 item per page
+    const ITEMS_PER_PAGE = 1;
+    let currentPage = 1;
+    const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE);
 
-            // Check each field's data presence
-            const fieldsToRender = Object.entries(fieldMappings).reduce(
-              (acc, [field, paths]) => {
-                const hasEnData =
-                  item[paths.en] &&
-                  (!Array.isArray(item[paths.en]) || item[paths.en].length > 0);
-                const hasFrData =
-                  item[paths.fr] &&
-                  (!Array.isArray(item[paths.fr]) || item[paths.fr].length > 0);
+    // Function to render a specific page of results
+    const renderPage = (pageNum) => {
+      // Calculate start and end indices for the current page
+      const startIndex = (pageNum - 1) * ITEMS_PER_PAGE;
+      const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, results.length);
+      const pageResults = results.slice(startIndex, endIndex);
 
-                // Only include fields that have data in at least one language
-                if (hasEnData || hasFrData) {
-                  acc[field] = { en: hasEnData, fr: hasFrData };
-                }
+      // Clear the results container
+      this.resultsContainer.innerHTML = '';
 
-                return acc;
-              },
-              {}
-            );
+      // Remove any existing pagination
+      const existingPagination = document.getElementById('search-pagination-container');
+      if (existingPagination) {
+        existingPagination.remove();
+      }
 
-            return `
-            <div class="swiper-slide py-4">
-              <div class="flex flex-col md:flex-row w-full gap-4">
-                <article class="w-full md:w-1/2 p-4">
-                  ${TemplateRenderer.renderTermCard(item, true, fieldsToRender)}
-                </article>
-                <article class="w-full md:w-1/2 p-4">
-                  ${TemplateRenderer.renderTermCard(
-                    item,
-                    false,
-                    fieldsToRender
-                  )}
-                </article>
-              </div>
-            </div>
-          `;
-          })
-          .join("")}
-      </div>
-      <div class="swiper-pagination"></div>
-      <div class="swiper-button-prev"></div>
-      <div class="swiper-button-next"></div>
-    `;
+      // Render each result for the current page (now just one item)
+      pageResults.forEach(item => {
+        // Define field mappings with their corresponding API field names
+        const fieldMappings = {
+          variant: { en: "variant_en", fr: "variant_fr" },
+          synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
+          definition: { en: "definition_en", fr: "definition_fr" },
+          syntactic: {
+            en: "syntactic_cooccurrence_en",
+            fr: "syntactic_cooccurrence_fr",
+          },
+          lexical: {
+            en: "lexical_relations_en",
+            fr: "lexical_relations_fr",
+          },
+          note: { en: "note_en", fr: "note_fr" },
+          confused: {
+            en: "note_to_be_confused_with_en",
+            fr: "note_to_be_confused_with_fr",
+          },
+          expression: {
+            en: "frequent_expression_en",
+            fr: "frequent_expression_fr",
+          },
+          phraseology: { en: "phraseology_en", fr: "phraseology_fr" },
+          context: { en: "context_en", fr: "context_fr" },
+        };
 
-    // Initialize Swiper
-    new Swiper(this.resultsContainer, {
-      slidesPerView: 1,
-      spaceBetween: 30,
-      pagination: {
-        el: ".swiper-pagination",
-        clickable: true,
-      },
-      navigation: {
-        nextEl: ".swiper-button-next",
-        prevEl: ".swiper-button-prev",
-      },
-    });
+        // Check each field's data presence
+        const fieldsToRender = Object.entries(fieldMappings).reduce(
+          (acc, [field, paths]) => {
+            const hasEnData =
+              item[paths.en] &&
+              (!Array.isArray(item[paths.en]) || item[paths.en].length > 0);
+            const hasFrData =
+              item[paths.fr] &&
+              (!Array.isArray(item[paths.fr]) || item[paths.fr].length > 0);
 
-    // Equalize heights after Swiper initialization
-    results.forEach((item, index) => {
-      const fields = [
-        "variant",
-        "synonym",
-        "definition",
-        "syntactic",
-        "lexical",
-        "note",
-        "confused",
-        "expression",
-        "phraseology",
-        "context",
-      ];
+            // Only include fields that have data in at least one language
+            if (hasEnData || hasFrData) {
+              acc[field] = { en: hasEnData, fr: hasFrData };
+            }
 
-      fields.forEach((field) => {
-        const enSelector = `.term-${item.tid}-en .term-${item.tid}-${field}`;
-        const frSelector = `.term-${item.tid}-fr .term-${item.tid}-${field}`;
+            return acc;
+          },
+          {}
+        );
 
-        const enElement = document.querySelector(enSelector);
-        const frElement = document.querySelector(frSelector);
+        // Create a container for this result - updated for better width control
+        const resultContainer = document.createElement('div');
+        resultContainer.className = 'flex flex-col md:flex-row w-full gap-6 mb-8';
+        resultContainer.innerHTML = `
+          <article class="w-full md:w-1/2 flex-1">
+            ${TemplateRenderer.renderTermCard(item, true, fieldsToRender)}
+          </article>
+          <article class="w-full md:w-1/2 flex-1">
+            ${TemplateRenderer.renderTermCard(item, false, fieldsToRender)}
+          </article>
+        `;
 
-        if (enElement && frElement) {
-          enElement.style.height = "auto";
-          frElement.style.height = "auto";
-          const maxHeight = Math.max(
-            enElement.offsetHeight,
-            frElement.offsetHeight
-          );
-          enElement.style.height = `${maxHeight}px`;
-          frElement.style.height = `${maxHeight}px`;
-        }
+        this.resultsContainer.appendChild(resultContainer);
       });
-    });
+
+      // Create pagination container
+      const paginationContainer = document.createElement('div');
+      paginationContainer.id = 'search-pagination-container';
+      paginationContainer.className = 'flex justify-center items-center space-x-2 mt-6 mb-8 w-full';
+      
+      // Add result counter
+      const resultCounter = document.createElement('div');
+      resultCounter.className = 'text-sm text-gray-500 mr-4';
+      resultCounter.textContent = `Résultat ${currentPage} sur ${totalPages}`;
+      paginationContainer.appendChild(resultCounter);
+      
+      // Previous button
+      const prevButton = document.createElement('button');
+      prevButton.className = `px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`;
+      prevButton.innerHTML = '&larr;';
+      prevButton.disabled = currentPage === 1;
+      prevButton.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage(currentPage);
+        }
+      };
+      paginationContainer.appendChild(prevButton);
+
+      // Page numbers - show limited page numbers with ellipsis for better UX
+      const maxVisiblePages = 5;
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      // First page button if not visible
+      if (startPage > 1) {
+        const firstPageButton = document.createElement('button');
+        firstPageButton.className = 'page-button px-3 py-1 rounded-md hover:bg-gray-200';
+        firstPageButton.textContent = '1';
+        firstPageButton.dataset.page = 1;
+        firstPageButton.onclick = () => {
+          currentPage = 1;
+          renderPage(currentPage);
+        };
+        paginationContainer.appendChild(firstPageButton);
+        
+        // Add ellipsis if needed
+        if (startPage > 2) {
+          const ellipsis = document.createElement('span');
+          ellipsis.textContent = '...';
+          ellipsis.className = 'px-1';
+          paginationContainer.appendChild(ellipsis);
+        }
+      }
+      
+      // Page numbers
+      for (let i = startPage; i <= endPage; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.className = `page-button px-3 py-1 rounded-md hover:bg-gray-200 ${i === currentPage ? 'bg-gray-200 font-bold' : ''}`;
+        pageButton.textContent = i;
+        pageButton.dataset.page = i;
+        pageButton.onclick = () => {
+          currentPage = i;
+          renderPage(currentPage);
+        };
+        paginationContainer.appendChild(pageButton);
+      }
+      
+      // Last page button if not visible
+      if (endPage < totalPages) {
+        // Add ellipsis if needed
+        if (endPage < totalPages - 1) {
+          const ellipsis = document.createElement('span');
+          ellipsis.textContent = '...';
+          ellipsis.className = 'px-1';
+          paginationContainer.appendChild(ellipsis);
+        }
+        
+        const lastPageButton = document.createElement('button');
+        lastPageButton.className = 'page-button px-3 py-1 rounded-md hover:bg-gray-200';
+        lastPageButton.textContent = totalPages;
+        lastPageButton.dataset.page = totalPages;
+        lastPageButton.onclick = () => {
+          currentPage = totalPages;
+          renderPage(currentPage);
+        };
+        paginationContainer.appendChild(lastPageButton);
+      }
+
+      // Next button
+      const nextButton = document.createElement('button');
+      nextButton.className = `px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`;
+      nextButton.innerHTML = '&rarr;';
+      nextButton.disabled = currentPage === totalPages;
+      nextButton.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPage(currentPage);
+        }
+      };
+      paginationContainer.appendChild(nextButton);
+
+      // Add pagination to the page
+      document.getElementById('main-content').appendChild(paginationContainer);
+
+      // Equalize heights after rendering
+      pageResults.forEach((item) => {
+        const fields = [
+          "variant",
+          "synonym",
+          "definition",
+          "syntactic",
+          "lexical",
+          "note",
+          "confused",
+          "expression",
+          "phraseology",
+          "context",
+        ];
+
+        fields.forEach((field) => {
+          const enSelector = `.term-${item.tid}-en .term-${item.tid}-${field}`;
+          const frSelector = `.term-${item.tid}-fr .term-${item.tid}-${field}`;
+
+          const enElement = document.querySelector(enSelector);
+          const frElement = document.querySelector(frSelector);
+
+          if (enElement && frElement) {
+            enElement.style.height = "auto";
+            frElement.style.height = "auto";
+            const maxHeight = Math.max(
+              enElement.offsetHeight,
+              frElement.offsetHeight
+            );
+            enElement.style.height = `${maxHeight}px`;
+            frElement.style.height = `${maxHeight}px`;
+          }
+        });
+      });
+    };
+
+    // Initial render of the first page
+    renderPage(1);
   }
 }
 

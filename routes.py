@@ -7,7 +7,7 @@ from __future__ import annotations
 from functools import wraps
 from io import StringIO
 import csv
-from typing import Any, Callable, Dict, List, Literal, Tuple, Union
+from typing import Any, Callable, Literal, Tuple, Union
 
 from flask import (
     Flask,
@@ -43,15 +43,6 @@ def admin_required(f: Callable) -> Callable:
         return f(*args, **kwargs)
 
     return decorated_function
-
-
-# class SecureAdminIndexView(AdminIndexView):
-#     """Secure admin index that requires authentication."""
-
-#     @expose('/')
-#     @admin_required
-#     def index(self):
-#         return super().index()
 
 
 class SecureAdminIndexView(AdminIndexView):
@@ -194,52 +185,50 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     @cross_origin()
     def search_terms() -> Tuple[Response, int]:
         """Public API endpoint for searching terms."""
-        query = request.args.get("q", "").lower().strip()
+        query = request.args.get("q", "").strip()
+        search_type = request.args.get("type", "term")
+
         if not query:
             return jsonify([]), 200
 
         try:
-            # Debugging: Log the incoming query
-            app.logger.info(f"Search query received: '{query}'")
+            base_query = Term.query
 
-            # Use SQLAlchemy's more efficient search capabilities
-            search_query = Term.query.filter(
-                db.or_(
-                    Term.english_term.ilike(f"%{query}%"),
-                    Term.french_term.ilike(f"%{query}%"),
-                    Term.domain_en.ilike(f"%{query}%"),
-                    Term.domain_fr.ilike(f"%{query}%"),
-                    Term.semantic_label_en.ilike(f"%{query}%"),
-                    Term.semantic_label_fr.ilike(f"%{query}%"),
-                    Term.definition_en.ilike(f"%{query}%"),
-                    Term.definition_fr.ilike(f"%{query}%"),
+            if search_type == "term":
+                base_query = base_query.filter(
+                    db.or_(
+                        Term.english_term.ilike(f"%{query}%"),
+                        Term.french_term.ilike(f"%{query}%")
+                    )
                 )
-            )
+            elif search_type == "class":
+                base_query = base_query.filter(
+                    db.or_(
+                        Term.semantic_label_en.ilike(f"%{query}%"),
+                        Term.semantic_label_fr.ilike(f"%{query}%")
+                    )
+                )
+            elif search_type == "synonym":
+                base_query = base_query.filter(
+                    db.or_(
+                        db.cast(Term.near_synonym_en, db.String).ilike(f"%{query}%"),
+                        db.cast(Term.near_synonym_fr, db.String).ilike(f"%{query}%")
+                    )
+                )
+            elif search_type == "subdomain":
+                # Using JSON containment for array search
+                base_query = base_query.filter(
+                    db.or_(
+                        Term.subdomains_en.contains([query]),
+                        Term.subdomains_fr.contains([query])
+                    )
+                )
 
-            # Debugging: Log the SQL query
-            app.logger.info(f"Generated SQL query: {str(search_query)}")
-
-            # Debugging: Count total terms and matching terms
-            total_terms = Term.query.count()
-            matching_terms = search_query.count()
-
-            app.logger.info(f"Total terms in database: {total_terms}")
-            app.logger.info(f"Matching terms found: {matching_terms}")
-
-            results = [term.to_dict() for term in search_query.all()]
-
-            # Debugging: Log results
-            app.logger.info(f"Search results: {results}")
-
+            results = [term.to_dict() for term in base_query.all()]
             return jsonify(results), 200
 
         except Exception as e:
-            # More detailed error logging
             app.logger.error(f"Search error: {str(e)}")
-            app.logger.error(f"Error type: {type(e)}")
-            import traceback
-
-            app.logger.error(traceback.format_exc())
             return jsonify({"error": f"An error occurred during search: {str(e)}"}), 500
 
     # Admin-only routes
@@ -280,6 +269,202 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             app.logger.error(f"Login error: {str(e)}")
             flash("Une erreur s'est produite", "error")
             return render_template("login.html"), 500
+
+    @app.route("/logout")
+    def logout() -> Response:
+        """Admin logout."""
+        logout_user()
+        return redirect(url_for("index"))
+
+    @app.route("/api")
+    def root() -> Tuple[Response, Literal[200]]:
+        """
+        Define the default (root) endpoint "/".
+
+        Input:  Nothing
+        Output: a dictionary message
+        """
+        return (
+            jsonify(
+                {
+                    "EN": "English-French Glossary of Terms Related to Disruptive Technologies (Big Data • AI • Blockchain).",
+                    "FR": "Glossaire anglais-francais de termes relatifs aux technologies transformatrices (Big Data • AI • Blockchain).",
+                }
+            ),
+            200,
+        )
+
+    @app.route("/api/terms", methods=["GET"])
+    def get_terms() -> Tuple[Response, Literal[200]]:
+        """
+        Get all terms from the glossary database.
+        Public endpoint - no authentication required.
+        """
+        terms = Term.query.all()
+        return jsonify([term.to_dict() for term in terms]), 200
+
+    @app.route("/api/terms/xml", methods=["GET"])
+    def get_terms_xml() -> Response:
+        """Get all terms in XML format."""
+        terms = Term.query.all()
+        
+        # Create XML structure
+        xml_data = ['<?xml version="1.0" encoding="UTF-8"?>']
+        xml_data.append('<terms>')
+        
+        for term in terms:
+            xml_data.append('  <term>')
+            term_dict = term.to_dict()
+            for key, value in term_dict.items():
+                if value:  # Only include non-None values
+                    # Escape special characters and wrap in CDATA if needed
+                    if isinstance(value, str) and any(char in value for char in '<>&'):
+                        value = f'<![CDATA[{value}]]>'
+                    xml_data.append(f'    <{key}>{value}</{key}>')
+            xml_data.append('  </term>')
+        
+        xml_data.append('</terms>')
+        
+        # Join all lines and create response
+        xml_content = '\n'.join(xml_data)
+        response = Response(xml_content, mimetype='application/xml')
+        response.headers['Content-Disposition'] = 'attachment; filename=glotecht_terms.xml'
+        
+        return response
+
+    @app.route("/update_password/<int:user_id>", methods=["POST"])
+    def update_password(user_id: int) -> Response:
+        """Update user password with proper hashing."""
+        try:
+            if current_user.id != user_id:
+                return jsonify({"error": "Unauthorized"}), 403
+
+            old_password = request.form.get("old_password")
+            new_password = request.form.get("new_password")
+
+            if not old_password or not new_password:
+                flash("Les deux mots de passe sont requis", "error")
+                return render_template("update_password.html"), 400
+
+            user = User.query.get(user_id)
+            if not user:
+                flash("Utilisateur non trouvé", "error")
+                return render_template("update_password.html"), 404
+
+            # Verify old password
+            if not bcrypt.check_password_hash(
+                user.password, old_password.encode("utf-8")
+            ):
+                flash("Le mot de passe actuel est incorrect", "error")
+                return render_template("update_password.html"), 401
+
+            password_bytes = new_password.encode("utf-8")
+            hashed_password = bcrypt.generate_password_hash(password_bytes).decode(
+                "utf-8"
+            )
+            user.password = hashed_password
+
+            db.session.commit()
+            flash("Mot de passe mis à jour avec succès", "success")
+            return redirect(url_for("admin.index"))
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Password update error: {str(e)}")
+            flash("Une erreur s'est produite", "error")
+            return render_template("update_password.html"), 500
+
+    @app.route("/update_password_form")
+    def update_password_form() -> str:
+        """Display the password update form."""
+        if not current_user.is_authenticated:
+            flash("Veuillez vous connecter pour modifier votre mot de passe", "error")
+            return redirect(url_for("login"))
+        return render_template("update_password.html")
+
+    @app.errorhandler(404)
+    def page_not_found(e):
+        """404 - Not Found page."""
+        return render_template("404.html"), 404
+
+    @app.route("/api/terms/list", methods=["GET"])
+    def get_terms_list():
+        try:
+            # Query only the english and french terms, ordered by english term
+            terms = db.session.query(
+                Term.english_term, 
+                Term.french_term
+            ).order_by(Term.english_term).all()
+            
+            # Format the results as requested
+            terms_list = [
+                {
+                    "EN": term.english_term,
+                    "FR": term.french_term
+                }
+                for term in terms
+            ]
+            
+            return jsonify(terms_list), 200
+            
+        except Exception as e:
+            app.logger.error(f"Error retrieving terms list: {str(e)}")
+            return jsonify({"error": "Failed to retrieve terms list"}), 500
+
+    @app.route("/api/terms/semantic-labels", methods=["GET"])
+    def get_semantic_labels():
+        try:
+            # Query only the semantic labels, ordered by English label
+            labels = db.session.query(
+                Term.semantic_label_en,
+                Term.semantic_label_fr
+            ).filter(
+                Term.semantic_label_en.isnot(None),  # Filter out NULL values
+                Term.semantic_label_fr.isnot(None)
+            ).distinct().order_by(Term.semantic_label_en).all()
+            
+            # Format the results
+            labels_list = [
+                {
+                    "EN": label.semantic_label_en,
+                    "FR": label.semantic_label_fr
+                }
+                for label in labels
+            ]
+            
+            return jsonify(labels_list), 200
+            
+        except Exception as e:
+            app.logger.error(f"Error retrieving semantic labels: {str(e)}")
+            return jsonify({"error": "Failed to retrieve semantic labels"}), 500
+
+    @app.route("/api/terms/csv")
+    def get_terms_csv() -> Response:
+        """Get all terms in CSV format."""
+        terms = Term.query.all()
+        
+        # Convert to list of dictionaries
+        terms_list = [term.to_dict() for term in terms]
+        
+        if not terms_list:
+            return Response("No terms found", mimetype='text/csv')
+        
+        # Get headers from the first term
+        headers = list(terms_list[0].keys())
+        
+        # Create CSV in memory
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=headers)
+        
+        # Write headers and data
+        writer.writeheader()
+        writer.writerows(terms_list)
+        
+        # Create response
+        response = Response(output.getvalue(), mimetype='text/csv')
+        response.headers['Content-Disposition'] = 'attachment; filename=glotecht_terms.csv'
+        
+        return response
 
     # @app.route("/signup", methods=["GET", "POST"])
     # def signup() -> Union[str, Response]:
@@ -328,30 +513,120 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     #         flash("Une erreur s'est produite", "error")
     #         return render_template("signup.html"), 500
 
-    @app.route("/logout")
-    def logout() -> Response:
-        """Admin logout."""
-        logout_user()
-        return redirect(url_for("index"))
+    # @app.route("/api/terms/search", methods=["GET"])
+    # @cross_origin()
+    # def search_terms() -> Tuple[Response, int]:
+    #     """Public API endpoint for searching terms."""
+    #     query = request.args.get("q", "").strip()
+    #     search_type = request.args.get("type", "term")
 
-    @app.route("/api")
-    def root() -> Tuple[Response, Literal[200]]:
-        """
-        Define the default (root) endpoint "/".
+    #     if not query:
+    #         return jsonify([]), 200
 
-        Input:  Nothing
-        Output: a dictionary message
-        """
-        return (
-            jsonify(
-                {
-                    "EN": "English-French Glossary for Disruptive Technologies (Big Data, AI, Blockchain).",
-                    "FR": "Glossaire Anglais-Francais des technologies transformatrices (Big Data, IA, blockchain).",
-                }
-            ),
-            200,
-        )
+    #     try:
+    #         base_query = Term.query
 
+    #         # Add debug logging
+    #         app.logger.info(f"Search type: {search_type}")
+    #         app.logger.info(f"Search query: {query}")
+
+    #         if search_type == "term":
+    #             base_query = base_query.filter(
+    #                 db.or_(
+    #                     Term.english_term.ilike(f"%{query}%"),
+    #                     Term.french_term.ilike(f"%{query}%")
+    #                 )
+    #             )
+    #         elif search_type == "class":  # Changed from semantic_label to class
+    #             base_query = base_query.filter(
+    #                 db.or_(
+    #                     Term.semantic_label_en.ilike(f"%{query}%"),
+    #                     Term.semantic_label_fr.ilike(f"%{query}%")
+    #                 )
+    #             )
+    #         elif search_type == "synonym":
+    #             base_query = base_query.filter(
+    #                 db.or_(
+    #                     Term.near_synonym_en.ilike(f"%{query}%"),
+    #                     Term.near_synonym_fr.ilike(f"%{query}%")
+    #                 )
+    #             )
+    #         elif search_type == "subdomain":
+    #             # For array fields, we need to use any() with a like condition
+    #             base_query = base_query.filter(
+    #                 db.or_(
+    #                     Term.subdomains_en.any(lambda x: x.ilike(f"%{query}%")),
+    #                     Term.subdomains_fr.any(lambda x: x.ilike(f"%{query}%"))
+    #                 )
+    #             )
+
+    #         # Add debug logging for query
+    #         app.logger.info(f"SQL Query: {str(base_query)}")
+
+    #         results = [term.to_dict() for term in base_query.all()]
+            
+    #         # Add debug logging for results
+    #         app.logger.info(f"Found {len(results)} results")
+
+    #         return jsonify(results), 200
+
+    #     except Exception as e:
+    #         app.logger.error(f"Search error: {str(e)}")
+    #         app.logger.error(f"Error type: {type(e)}")
+    #         return jsonify({"error": f"An error occurred during search: {str(e)}"}), 500
+
+    # @app.route("/api/terms/search", methods=["GET"])
+    # @cross_origin()
+    # def search_terms() -> Tuple[Response, int]:
+    #     """Public API endpoint for searching terms."""
+    #     query = request.args.get("q", "").lower().strip()
+    #     if not query:
+    #         return jsonify([]), 200
+
+    #     try:
+    #         # Debugging: Log the incoming query
+    #         app.logger.info(f"Search query received: '{query}'")
+
+    #         # Use SQLAlchemy's more efficient search capabilities
+    #         search_query = Term.query.filter(
+    #             db.or_(
+    #                 Term.english_term.ilike(f"%{query}%"),
+    #                 Term.french_term.ilike(f"%{query}%"),
+    #                 Term.domain_en.ilike(f"%{query}%"),
+    #                 Term.domain_fr.ilike(f"%{query}%"),
+    #                 Term.semantic_label_en.ilike(f"%{query}%"),
+    #                 Term.semantic_label_fr.ilike(f"%{query}%"),
+    #                 Term.definition_en.ilike(f"%{query}%"),
+    #                 Term.definition_fr.ilike(f"%{query}%"),
+    #             )
+    #         )
+
+    #         # Debugging: Log the SQL query
+    #         app.logger.info(f"Generated SQL query: {str(search_query)}")
+
+    #         # Debugging: Count total terms and matching terms
+    #         total_terms = Term.query.count()
+    #         matching_terms = search_query.count()
+
+    #         app.logger.info(f"Total terms in database: {total_terms}")
+    #         app.logger.info(f"Matching terms found: {matching_terms}")
+
+    #         results = [term.to_dict() for term in search_query.all()]
+
+    #         # Debugging: Log results
+    #         app.logger.info(f"Search results: {results}")
+
+    #         return jsonify(results), 200
+
+    #     except Exception as e:
+    #         # More detailed error logging
+    #         app.logger.error(f"Search error: {str(e)}")
+    #         app.logger.error(f"Error type: {type(e)}")
+    #         import traceback
+
+    #         app.logger.error(traceback.format_exc())
+    #         return jsonify({"error": f"An error occurred during search: {str(e)}"}), 500
+    
     ################################################
     # TERM ROUTES
     ################################################
@@ -439,44 +714,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     #         jsonify({"message": "Term created successfully!", "term": term.to_dict()}),
     #         201,
     #     )
-
-    @app.route("/api/terms", methods=["GET"])
-    def get_terms() -> Tuple[Response, Literal[200]]:
-        """
-        Get all terms from the glossary database.
-        Public endpoint - no authentication required.
-        """
-        terms = Term.query.all()
-        return jsonify([term.to_dict() for term in terms]), 200
-
-    @app.route("/api/terms/xml", methods=["GET"])
-    def get_terms_xml() -> Response:
-        """Get all terms in XML format."""
-        terms = Term.query.all()
-        
-        # Create XML structure
-        xml_data = ['<?xml version="1.0" encoding="UTF-8"?>']
-        xml_data.append('<terms>')
-        
-        for term in terms:
-            xml_data.append('  <term>')
-            term_dict = term.to_dict()
-            for key, value in term_dict.items():
-                if value:  # Only include non-None values
-                    # Escape special characters and wrap in CDATA if needed
-                    if isinstance(value, str) and any(char in value for char in '<>&'):
-                        value = f'<![CDATA[{value}]]>'
-                    xml_data.append(f'    <{key}>{value}</{key}>')
-            xml_data.append('  </term>')
-        
-        xml_data.append('</terms>')
-        
-        # Join all lines and create response
-        xml_content = '\n'.join(xml_data)
-        response = Response(xml_content, mimetype='application/xml')
-        response.headers['Content-Disposition'] = 'attachment; filename=glotecht_terms.xml'
-        
-        return response
 
     # @app.route("/api/terms/<int:tid>", methods=["GET"])
     # def get_term(
@@ -879,137 +1116,3 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     #     except Exception as e:
     #         db.session.rollback()
     #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
-
-    @app.route("/update_password/<int:user_id>", methods=["POST"])
-    def update_password(user_id: int) -> Response:
-        """Update user password with proper hashing."""
-        try:
-            if current_user.id != user_id:
-                return jsonify({"error": "Unauthorized"}), 403
-
-            old_password = request.form.get("old_password")
-            new_password = request.form.get("new_password")
-
-            if not old_password or not new_password:
-                flash("Les deux mots de passe sont requis", "error")
-                return render_template("update_password.html"), 400
-
-            user = User.query.get(user_id)
-            if not user:
-                flash("Utilisateur non trouvé", "error")
-                return render_template("update_password.html"), 404
-
-            # Verify old password
-            if not bcrypt.check_password_hash(
-                user.password, old_password.encode("utf-8")
-            ):
-                flash("Le mot de passe actuel est incorrect", "error")
-                return render_template("update_password.html"), 401
-
-            password_bytes = new_password.encode("utf-8")
-            hashed_password = bcrypt.generate_password_hash(password_bytes).decode(
-                "utf-8"
-            )
-            user.password = hashed_password
-
-            db.session.commit()
-            flash("Mot de passe mis à jour avec succès", "success")
-            return redirect(url_for("admin.index"))
-
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Password update error: {str(e)}")
-            flash("Une erreur s'est produite", "error")
-            return render_template("update_password.html"), 500
-
-    @app.route("/update_password_form")
-    def update_password_form() -> str:
-        """Display the password update form."""
-        if not current_user.is_authenticated:
-            flash("Veuillez vous connecter pour modifier votre mot de passe", "error")
-            return redirect(url_for("login"))
-        return render_template("update_password.html")
-
-    @app.errorhandler(404)
-    def page_not_found(e):
-        """404 - Not Found page."""
-        return render_template("404.html"), 404
-
-    @app.route("/api/terms/list", methods=["GET"])
-    def get_terms_list():
-        try:
-            # Query only the english and french terms, ordered by english term
-            terms = db.session.query(
-                Term.english_term, 
-                Term.french_term
-            ).order_by(Term.english_term).all()
-            
-            # Format the results as requested
-            terms_list = [
-                {
-                    "EN": term.english_term,
-                    "FR": term.french_term
-                }
-                for term in terms
-            ]
-            
-            return jsonify(terms_list), 200
-            
-        except Exception as e:
-            app.logger.error(f"Error retrieving terms list: {str(e)}")
-            return jsonify({"error": "Failed to retrieve terms list"}), 500
-
-    @app.route("/api/terms/semantic-labels", methods=["GET"])
-    def get_semantic_labels():
-        try:
-            # Query only the semantic labels, ordered by English label
-            labels = db.session.query(
-                Term.semantic_label_en,
-                Term.semantic_label_fr
-            ).filter(
-                Term.semantic_label_en.isnot(None),  # Filter out NULL values
-                Term.semantic_label_fr.isnot(None)
-            ).distinct().order_by(Term.semantic_label_en).all()
-            
-            # Format the results
-            labels_list = [
-                {
-                    "EN": label.semantic_label_en,
-                    "FR": label.semantic_label_fr
-                }
-                for label in labels
-            ]
-            
-            return jsonify(labels_list), 200
-            
-        except Exception as e:
-            app.logger.error(f"Error retrieving semantic labels: {str(e)}")
-            return jsonify({"error": "Failed to retrieve semantic labels"}), 500
-
-    @app.route("/api/terms/csv")
-    def get_terms_csv() -> Response:
-        """Get all terms in CSV format."""
-        terms = Term.query.all()
-        
-        # Convert to list of dictionaries
-        terms_list = [term.to_dict() for term in terms]
-        
-        if not terms_list:
-            return Response("No terms found", mimetype='text/csv')
-        
-        # Get headers from the first term
-        headers = list(terms_list[0].keys())
-        
-        # Create CSV in memory
-        output = StringIO()
-        writer = csv.DictWriter(output, fieldnames=headers)
-        
-        # Write headers and data
-        writer.writeheader()
-        writer.writerows(terms_list)
-        
-        # Create response
-        response = Response(output.getvalue(), mimetype='text/csv')
-        response.headers['Content-Disposition'] = 'attachment; filename=glotecht_terms.csv'
-        
-        return response
