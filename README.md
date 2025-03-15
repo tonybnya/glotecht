@@ -1,3 +1,3 @@
 # GloTechT
 
-English-French Glossary for Disruptive Technologies (Big Data, AI, Blockchain).
+English-French Glossary of Terms Related to Disruptive Technologies (Big Data • AI • Blockchain). 
