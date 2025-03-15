@@ -1,7 +1,7 @@
 // Constants and Configuration
 // Update the SEARCH_TYPES configuration
 const CONFIG = {
-  API_URL: "http://127.0.0.1:5003/api/terms/search",
+  API_URL: "http://127.0.0.1:5000/api/terms/search",
   DEBOUNCE_DELAY: 300,
   COLORS: [
     { text: "text-white", bg: "bg-[#194B6B]" },
@@ -417,13 +417,24 @@ class SearchManager {
       );
     });
 
-    // Listen for search type changes
+    // Listen for search type changes - this part might be problematic
     this.criteriaForm.addEventListener("change", (event) => {
-      if (event.detail) {
-        this.searchType = event.detail;
+      // Modified to check if the target is a select or radio input
+      if (event.target && (event.target.tagName === 'SELECT' || 
+         (event.target.tagName === 'INPUT' && event.target.type === 'radio'))) {
+        // Get the value directly from the form or target
+        this.searchType = event.target.value || this.criteriaForm.querySelector('select')?.value || 'term';
         this.performSearch();
       }
     });
+    // Add search button event listener if it exists
+    const searchButton = document.getElementById('search-button');
+    if (searchButton) {
+      searchButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.performSearch();
+      });
+    }
   }
 
   // Update the performSearch method in SearchManager class
