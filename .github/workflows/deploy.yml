@@ -22,9 +22,8 @@ jobs:
           key: ${{ secrets.LINODE_SSH_KEY }}
           script: |
             cd /var/www/glotecht
-            git pull origin main --exclude=instance/
+            git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
-            flask db upgrade
             systemctl restart glotecht
             systemctl restart nginx
