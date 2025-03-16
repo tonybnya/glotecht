@@ -162,18 +162,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     data.forEach(label => {
       // Create English label element
       const enDiv = document.createElement('div');
-      enDiv.className = 'py-3 px-4 hover:bg-gray-50';
+      enDiv.className = 'py-6 px-6 hover:bg-gray-50 min-h-[80px]';
       enDiv.innerHTML = `
-        <p class="text-sm font-medium text-gray-900">
+        <p class="text-base font-medium text-gray-900">
           ${label.EN}
         </p>
       `;
 
       // Create French label element
       const frDiv = document.createElement('div');
-      frDiv.className = 'py-3 px-4 hover:bg-gray-50';
+      frDiv.className = 'py-6 px-6 hover:bg-gray-50 min-h-[80px]';
       frDiv.innerHTML = `
-        <p class="text-sm font-medium text-gray-900">
+        <p class="text-base font-medium text-gray-900">
           ${label.FR}
         </p>
       `;
