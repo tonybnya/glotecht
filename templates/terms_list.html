@@ -135,27 +135,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       const endIndex = startIndex + ITEMS_PER_PAGE;
       const pageTerms = allTerms.slice(startIndex, endIndex);
 
-      pageTerms.forEach(term => {
+      // Create a container for each pair of terms to ensure alignment
+      pageTerms.forEach((term, index) => {
+        // Create a unique ID for this term pair
+        const termId = `term-${index}-${currentPage}`;
+        
         // Create English term element
         const enDiv = document.createElement('div');
-        enDiv.className = 'py-3 px-4 hover:bg-gray-50 flex items-center min-h-[48px]';
+        enDiv.className = 'py-6 px-6 hover:bg-gray-50 flex items-center min-h-[80px]';
+        enDiv.id = `en-${termId}`;
         enDiv.innerHTML = `
-          <p class="text-sm font-medium text-gray-900 w-full whitespace-normal break-words">
+          <p class="text-base md:text-lg font-medium text-gray-900 w-full whitespace-normal break-words">
             ${term.EN}
           </p>
         `;
 
         // Create French term element
         const frDiv = document.createElement('div');
-        frDiv.className = 'py-3 px-4 hover:bg-gray-50 flex items-center min-h-[48px]';
+        frDiv.className = 'py-6 px-6 hover:bg-gray-50 flex items-center min-h-[80px]';
+        frDiv.id = `fr-${termId}`;
         frDiv.innerHTML = `
-          <p class="text-sm font-medium text-gray-900 w-full whitespace-normal break-words">
+          <p class="text-base md:text-lg font-medium text-gray-900 w-full whitespace-normal break-words">
             ${term.FR}
           </p>
         `;
 
         englishContainer.appendChild(enDiv);
         frenchContainer.appendChild(frDiv);
+        
+        // After adding both divs, ensure they have the same height
+        requestAnimationFrame(() => {
+          const enHeight = document.getElementById(`en-${termId}`).offsetHeight;
+          const frHeight = document.getElementById(`fr-${termId}`).offsetHeight;
+          const maxHeight = Math.max(enHeight, frHeight);
+          
+          document.getElementById(`en-${termId}`).style.height = `${maxHeight}px`;
+          document.getElementById(`fr-${termId}`).style.height = `${maxHeight}px`;
+        });
       });
 
       // Update pagination buttons state
