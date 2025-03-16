@@ -1,7 +1,7 @@
 // Constants and Configuration
 // Update the SEARCH_TYPES configuration
 const CONFIG = {
-  API_URL: "http://127.0.0.1:5000/api/terms/search",
+  API_URL: "/api/terms/search",
   DEBOUNCE_DELAY: 300,
   COLORS: [
     { text: "text-white", bg: "bg-[#194B6B]" },
@@ -398,17 +398,21 @@ class SearchManager {
     this.searchInput = document.getElementById("search-input");
     this.resultsContainer = document.getElementById("results");
     this.criteriaForm = document.getElementById("criteria-form");
-    this.searchType = "term";
+    this.searchCriteria = document.getElementById("search-criteria");
+    this.searchButton = document.getElementById("search-button");
+    this.searchType = this.searchCriteria ? this.searchCriteria.value : "term";
     this.debounceTimeout = null;
 
-    if (!this.searchInput || !this.resultsContainer || !this.criteriaForm) {
-      throw new Error("Required DOM elements are missing.");
+    if (!this.searchInput || !this.resultsContainer) {
+      console.error("Required DOM elements are missing.");
+      return;
     }
 
     this.init();
   }
 
   init() {
+    // Handle input changes with debounce
     this.searchInput.addEventListener("input", () => {
       clearTimeout(this.debounceTimeout);
       this.debounceTimeout = setTimeout(
@@ -417,60 +421,94 @@ class SearchManager {
       );
     });
 
-    // Listen for search type changes - this part might be problematic
-    this.criteriaForm.addEventListener("change", (event) => {
-      // Modified to check if the target is a select or radio input
-      if (event.target && (event.target.tagName === 'SELECT' || 
-         (event.target.tagName === 'INPUT' && event.target.type === 'radio'))) {
-        // Get the value directly from the form or target
-        this.searchType = event.target.value || this.criteriaForm.querySelector('select')?.value || 'term';
-        this.performSearch();
-      }
-    });
-    // Add search button event listener if it exists
-    const searchButton = document.getElementById('search-button');
-    if (searchButton) {
-      searchButton.addEventListener('click', (event) => {
+    // Handle search criteria changes
+    if (this.searchCriteria) {
+      this.searchCriteria.addEventListener("change", (event) => {
+        this.searchType = event.target.value;
+        // Don't auto-search on mobile when criteria changes
+        if (window.innerWidth > 768) {
+          this.performSearch();
+        }
+      });
+    }
+
+    // Handle form submission
+    if (this.criteriaForm) {
+      this.criteriaForm.addEventListener("submit", (event) => {
         event.preventDefault();
         this.performSearch();
       });
     }
+
+    // Add search button click handler
+    if (this.searchButton) {
+      this.searchButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        this.performSearch();
+      });
+    }
+
+    // Make performSearch available globally for external calls
+    window.performSearch = (type, term) => {
+      if (type) this.searchType = type;
+      if (term) this.searchInput.value = term;
+      this.performSearch();
+    };
   }
 
   // Update the performSearch method in SearchManager class
   async performSearch() {
-      const searchTerm = this.searchInput.value.trim();
-      if (!searchTerm) {
-        this.resultsContainer.innerHTML = "";
-        return;
+    const searchTerm = this.searchInput.value.trim();
+    if (!searchTerm) {
+      this.resultsContainer.innerHTML = "";
+      return;
+    }
+
+    try {
+      // Get the current search type from the select element
+      if (this.searchCriteria) {
+        this.searchType = this.searchCriteria.value;
       }
-  
-      try {
-        const searchConfig = CONFIG.SEARCH_TYPES[this.searchType];
-        const params = new URLSearchParams({
-          q: searchTerm,
-          type: this.searchType,
-          exact: searchConfig.exact || false,
-          field: searchConfig.field,
-          altField: searchConfig.altField,
-          isArray: searchConfig.isArray || false
-        });
-  
-        const response = await fetch(`${CONFIG.API_URL}?${params}`, {
-          headers: { Accept: "application/json" },
-        });
-  
-        if (!response.ok) {
-          throw new Error("Quelque chose n'a pas marché.");
-        }
-  
-        const data = await response.json();
-        this.displayResults(data, searchTerm);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        this.resultsContainer.innerHTML = `
-          <p class="text-center">Une erreur s'est produite. Veuillez réessayer.</p>`;
+      
+      const searchConfig = CONFIG.SEARCH_TYPES[this.searchType];
+      if (!searchConfig) {
+        console.error("Invalid search type:", this.searchType);
+        throw new Error("Type de recherche invalide");
       }
+
+      // Show loading indicator
+      this.resultsContainer.innerHTML = `
+        <div class="w-full flex justify-center items-center min-h-[100px]">
+          <p class="text-center">Recherche en cours...</p>
+        </div>`;
+
+      const params = new URLSearchParams({
+        q: searchTerm,
+        type: this.searchType,
+        exact: searchConfig.exact || false,
+        field: searchConfig.field,
+        altField: searchConfig.altField,
+        isArray: searchConfig.isArray || false
+      });
+
+      const response = await fetch(`${CONFIG.API_URL}?${params}`, {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur serveur: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.displayResults(data, searchTerm);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      this.resultsContainer.innerHTML = `
+        <div class="w-full flex justify-center items-center min-h-[100px]">
+          <p class="text-center text-red-600">Une erreur s'est produite. Veuillez réessayer.</p>
+          <p class="text-center text-gray-500 text-sm mt-2">${error.message}</p>
+        </div>`;
+    }
   }
 
   displayResults(results, searchTerm) {
