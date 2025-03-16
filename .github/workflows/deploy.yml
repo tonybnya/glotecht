@@ -27,3 +27,7 @@ jobs:
             pip install -r requirements.txt
             systemctl restart glotecht
             systemctl restart nginx
+      - name: Restart Flask in screen
+        run: |
+          screen -S flask-app -X quit || true  # Kill existing screen session
+          screen -dmS flask-app gunicorn -w 3 -b 0.0.0.0:8000 run:flask_app
