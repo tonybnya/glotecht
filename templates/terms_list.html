@@ -142,22 +142,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Create English term element
         const enDiv = document.createElement('div');
-        enDiv.className = 'py-6 px-6 hover:bg-gray-50 flex items-center min-h-[80px]';
+        enDiv.className = 'py-6 px-6 hover:bg-gray-50 flex justify-between items-center min-h-[80px]';
         enDiv.id = `en-${termId}`;
         enDiv.innerHTML = `
-          <p class="text-base md:text-lg font-medium text-gray-900 w-full whitespace-normal break-words">
+          <p class="text-base md:text-lg font-medium text-gray-900 whitespace-normal break-words">
             ${term.EN}
           </p>
+          <button class="view-details-btn ml-3 px-3 py-1 bg-[#296F9A] text-white rounded hover:bg-[#1d5272] transition-colors" 
+                  data-term-id="${term.id || index}" data-lang="en">
+            View
+          </button>
         `;
 
         // Create French term element
         const frDiv = document.createElement('div');
-        frDiv.className = 'py-6 px-6 hover:bg-gray-50 flex items-center min-h-[80px]';
+        frDiv.className = 'py-6 px-6 hover:bg-gray-50 flex justify-between items-center min-h-[80px]';
         frDiv.id = `fr-${termId}`;
         frDiv.innerHTML = `
-          <p class="text-base md:text-lg font-medium text-gray-900 w-full whitespace-normal break-words">
+          <p class="text-base md:text-lg font-medium text-gray-900 whitespace-normal break-words">
             ${term.FR}
           </p>
+          <button class="view-details-btn ml-3 px-3 py-1 bg-[#A32A34] text-white rounded hover:bg-[#7a1f27] transition-colors" 
+                  data-term-id="${term.id || index}" data-lang="fr">
+            Voir
+          </button>
         `;
 
         englishContainer.appendChild(enDiv);
@@ -179,6 +187,153 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.classList.toggle('bg-gray-200', parseInt(btn.dataset.page) === currentPage);
       });
     }
+
+    // Add modal container to the page
+    const modalContainer = document.createElement('div');
+    modalContainer.id = 'term-modal-container';
+    modalContainer.className = 'fixed inset-0 bg-black bg-opacity-50 z-50';
+    modalContainer.style.display = 'none';
+    modalContainer.innerHTML = `
+      <div class="w-full h-full flex items-center justify-center p-4">
+        <div id="term-modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[95vh] overflow-y-auto p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold" id="term-modal-title">Term Details</h3>
+            <button id="close-term-modal" class="text-gray-500 hover:text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div id="term-modal-body" class="mt-6">
+            <!-- Modal content will be populated here -->
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalContainer);
+
+    // Add event listeners for the view buttons
+    document.addEventListener('click', async (event) => {
+      if (event.target.classList.contains('view-details-btn')) {
+        const termId = event.target.getAttribute('data-term-id');
+        const lang = event.target.getAttribute('data-lang');
+        
+        try {
+          // Find the term in our existing data first
+          const termIndex = parseInt(termId);
+          let termData;
+          
+          // Check if we have a numeric index or an actual ID
+          if (!isNaN(termIndex) && termIndex >= 0 && termIndex < allTerms.length) {
+            // Use the term from our existing data
+            termData = allTerms[termIndex];
+            console.log("Using term from existing data:", termData);
+          } else {
+            // Try to fetch from API
+            console.log("Fetching term details from API for ID:", termId);
+            const response = await fetch(`/api/terms/${termId}`);
+            
+            if (!response.ok) {
+              console.error(`API error: ${response.status} ${response.statusText}`);
+              throw new Error(`API returned status: ${response.status}`);
+            }
+            
+            termData = await response.json();
+          }
+          
+          if (!termData) {
+            throw new Error('Term data not found');
+          }
+          
+          // Show the modal
+          const modal = document.getElementById('term-modal-container');
+          const modalTitle = document.getElementById('term-modal-title');
+          const modalBody = document.getElementById('term-modal-body');
+          
+          // Set title based on language
+          modalTitle.textContent = lang === 'en' ? 'Term Details' : 'Détails du Terme';
+          modalTitle.className = lang === 'en' ? 'text-2xl font-bold text-[#296F9A]' : 'text-2xl font-bold text-[#A32A34]';
+          
+          // Simplified modal content with just the essential information
+          modalBody.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <!-- English Column -->
+              <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-6 md:pb-0 md:pr-8">
+                <h4 class="font-bold text-xl text-[#296F9A] mb-4">English</h4>
+                <p class="mb-4 text-xl font-semibold">${termData.english_term || termData.EN || ''}</p>
+              </div>
+              
+              <!-- French Column -->
+              <div class="pt-6 md:pt-0 md:pl-8">
+                <h4 class="font-bold text-xl text-[#A32A34] mb-4">Français</h4>
+                <p class="mb-4 text-xl font-semibold">${termData.french_term || termData.FR || ''}</p>
+              </div>
+            </div>
+            
+            <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center">
+              <button id="close-details-btn" class="inline-block px-5 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                Close
+              </button>
+            </div>
+          `;
+          
+          // Add event listener to the close button in the modal
+          document.getElementById('close-details-btn')?.addEventListener('click', () => {
+            modal.style.display = 'none';
+          });
+          
+          // Show the modal
+          modal.style.display = 'flex';
+        } catch (error) {
+          console.error('Error fetching term details:', error);
+          
+          // Show error message
+          const modal = document.getElementById('term-modal-container');
+          const modalTitle = document.getElementById('term-modal-title');
+          const modalBody = document.getElementById('term-modal-body');
+          
+          modalTitle.textContent = 'Error';
+          modalTitle.className = 'text-2xl font-bold text-red-600';
+          
+          modalBody.innerHTML = `
+            <div class="text-center py-6">
+              <p class="text-lg text-red-600 mb-4">Failed to load term details</p>
+              <button id="error-close-btn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                Close
+              </button>
+            </div>
+          `;
+          
+          document.getElementById('error-close-btn').addEventListener('click', () => {
+            modal.style.display = 'none';
+          });
+          
+          modal.style.display = 'flex';
+        }
+      }
+    });
+    
+    // Close modal when clicking the close button
+    document.getElementById('close-term-modal').addEventListener('click', () => {
+      document.getElementById('term-modal-container').style.display = 'none';
+    });
+    
+    // Close modal when clicking outside the modal content
+    document.getElementById('term-modal-container').addEventListener('click', (event) => {
+      if (event.target.closest('#term-modal-content') === null) {
+        document.getElementById('term-modal-container').style.display = 'none';
+      }
+    });
+
+    // REMOVE THESE LINES (around line 350-355):
+    // Remove these conflicting lines
+    // modal.style.display = 'flex';  // Remove this line
+    // document.getElementById('term-modal-container').classList.add('hidden'); // Remove this line
+
+    // In the event handler for showing the modal:
+    // modal.style.display = 'flex';  // Replace modal.classList.remove('hidden');
+
+    // document.getElementById('term-modal-container').classList.add('hidden');
 
     // Replace the pagination container creation with:
     const paginationContainer = document.getElementById('pagination-container');

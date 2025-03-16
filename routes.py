@@ -715,26 +715,26 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     #         201,
     #     )
 
-    # @app.route("/api/terms/<int:tid>", methods=["GET"])
-    # def get_term(
-    #     tid: int,
-    # ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
-    #     """
-    #     Retrieves a single Term by its ID.
+    @app.route("/api/terms/<int:tid>", methods=["GET"])
+    def get_term(
+        tid: int,
+    ) -> Tuple[Response, Union[Literal[200], Literal[404], Literal[500]]]:
+        """
+        Retrieves a single Term by its ID.
 
-    #     Input:  (int) tid   | the ID of the term to retrieve.
-    #     Output: (Response)  | a JSON response with the Term details or an error message.
-    #     """
-    #     try:
-    #         # Fetch the Term with the given term ID
-    #         term = Term.query.get(tid)
-    #         if not term:
-    #             return jsonify({"error": f"Term with ID {tid} not found."}), 404
+        Input:  (int) tid   | the ID of the term to retrieve.
+        Output: (Response)  | a JSON response with the Term details or an error message.
+        """
+        try:
+            # Fetch the Term with the given term ID
+            term = Term.query.get(tid)
+            if not term:
+                return jsonify({"error": f"Term with ID {tid} not found."}), 404
 
-    #         return jsonify(term.to_dict()), 200
+            return jsonify(term.to_dict()), 200
 
-    #     except Exception as e:
-    #         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        except Exception as e:
+            return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
     # @app.route("/api/terms/<int:tid>", methods=["PUT"])
     # def update_term(
