@@ -20,6 +20,11 @@ const CONFIG = {
       exact: false
     },
     synonym: { 
+      field: "synonym_en", 
+      altField: "synonym_fr",
+      exact: false
+    },
+    near_synonym: { 
       field: "near_synonym_en", 
       altField: "near_synonym_fr",
       exact: false
@@ -169,6 +174,7 @@ const TemplateRenderer = {
       subdomain: isEnglish ? "Subdomain" : "Sous-domaine",
       variant: isEnglish ? "Variant" : "Variante",
       synonym: isEnglish ? "Synonym" : "Synonyme",
+      near_synonym: isEnglish ? "Near Synonym" : "Quasi-synonyme",
       definition: isEnglish ? "Definition" : "Définition",
       syntactic: isEnglish
         ? "Syntactic Cooccurrence"
@@ -233,9 +239,19 @@ const TemplateRenderer = {
               fieldsToRender.synonym?.[lang]
                 ? this.renderField(
                     labels.synonym,
-                    item[`near_synonym_${lang}`],
+                    item[`synonym_${lang}`],
                     false,
                     `${fieldClass}-synonym`
+                  )
+                : ""
+            }
+            ${
+              fieldsToRender.near_synonym?.[lang]
+                ? this.renderField(
+                    labels.near_synonym,
+                    item[`near_synonym_${lang}`],
+                    false,
+                    `${fieldClass}-near_synonym`
                   )
                 : ""
             }
@@ -551,7 +567,8 @@ class SearchManager {
         // Define field mappings with their corresponding API field names
         const fieldMappings = {
           variant: { en: "variant_en", fr: "variant_fr" },
-          synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
+          near_synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
+          synonym: { en: "synonym_en", fr: "synonym_fr" },
           definition: { en: "definition_en", fr: "definition_fr" },
           syntactic: {
             en: "syntactic_cooccurrence_en",
@@ -574,21 +591,20 @@ class SearchManager {
           context: { en: "context_en", fr: "context_fr" },
         };
 
-        // Check each field's data presence
+        // Build a filtered fieldsToRender object
+        const isNonEmpty = (val) =>
+          val && (
+            (Array.isArray(val) && val.length > 0) ||
+            (typeof val === "string" && val.trim().length > 0)
+          );
+
         const fieldsToRender = Object.entries(fieldMappings).reduce(
           (acc, [field, paths]) => {
-            const hasEnData =
-              item[paths.en] &&
-              (!Array.isArray(item[paths.en]) || item[paths.en].length > 0);
-            const hasFrData =
-              item[paths.fr] &&
-              (!Array.isArray(item[paths.fr]) || item[paths.fr].length > 0);
-
-            // Only include fields that have data in at least one language
+            const hasEnData = isNonEmpty(item[paths.en]);
+            const hasFrData = isNonEmpty(item[paths.fr]);
             if (hasEnData || hasFrData) {
               acc[field] = { en: hasEnData, fr: hasFrData };
             }
-
             return acc;
           },
           {}
@@ -717,6 +733,7 @@ class SearchManager {
       pageResults.forEach((item) => {
         const fields = [
           "variant",
+          "near_synonym",
           "synonym",
           "definition",
           "syntactic",
