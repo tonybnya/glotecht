@@ -298,7 +298,7 @@ const TemplateRenderer = {
               fieldsToRender.confused?.[lang]
                 ? this.renderField(
                     labels.confused,
-                    item[`note_to_be_confused_with_${lang}`],
+                    item[`not_to_be_confused_with_${lang}`],
                     true,
                     `${fieldClass}-confused`
                   )
@@ -580,8 +580,8 @@ class SearchManager {
           },
           note: { en: "note_en", fr: "note_fr" },
           confused: {
-            en: "note_to_be_confused_with_en",
-            fr: "note_to_be_confused_with_fr",
+            en: "not_to_be_confused_with_en",
+            fr: "not_to_be_confused_with_fr",
           },
           expression: {
             en: "frequent_expression_en",
