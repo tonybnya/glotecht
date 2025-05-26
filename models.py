@@ -98,6 +98,9 @@ class Term(db.Model):
         variant_en (str): Variant of the term in English.
         variant_fr (str): Variant of the term in French.
 
+        synonym_en (str): Synonym of the term in English.
+        synonym_fr (str): Synonym of the term in French.
+
         near_synonym_en (str): Near synonym of the term in English.
         near_synonym_fr (str): Near synonym of the term in French.
 
@@ -148,6 +151,9 @@ class Term(db.Model):
 
     near_synonym_en: str = db.Column(db.String(255))
     near_synonym_fr: str = db.Column(db.String(255))
+
+    synonym_en: str = db.Column(db.String(255))
+    synonym_fr: str = db.Column(db.String(255))
 
     definition_en: str = db.Column(db.Text)
     definition_fr: str = db.Column(db.Text)
@@ -210,6 +216,9 @@ class Term(db.Model):
             # separator
             "variant_en": self.variant_en,
             "variant_fr": self.variant_fr,
+            # separator
+            "synonym_en": self.synonym_en,
+            "synonym_fr": self.synonym_fr,
             # separator
             "near_synonym_en": self.near_synonym_en,
             "near_synonym_fr": self.near_synonym_fr,

@@ -18,12 +18,12 @@ block content %}
         <h2 class="text-2xl text-center font-bold mb-2">Se connecter</h2>
 
         {# Signup redirection temporarily removed
-          <h5 class="text-center">
-              Pas encore de compte ?
-              <span class="text-[#296F9A]">
-                  <a href="{{ url_for('signup') }}">Enregistrez-vous ici !</a>
-              </span>
-          </h5>
+        <h5 class="text-center">
+            Pas encore de compte ?
+            <span class="text-[#296F9A]">
+                <a href="{{ url_for('signup') }}">Enregistrez-vous ici !</a>
+            </span>
+        </h5>
         #}
 
         {% with messages = get_flashed_messages(with_categories=true) %} {% if
