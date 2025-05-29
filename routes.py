@@ -8,6 +8,7 @@ from functools import wraps
 from io import StringIO
 import csv
 from typing import Any, Callable, Literal, Tuple, Union
+import re
 
 from flask import (
     Flask,
@@ -423,20 +424,28 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
                 Term.semantic_label_fr.isnot(None)
             ).distinct().order_by(Term.semantic_label_en).all()
             
-            # Format the results
-            labels_list = [
-                {
-                    "EN": label.semantic_label_en,
-                    "FR": label.semantic_label_fr
-                }
-                for label in labels
-            ]
+            # Helper to strip trailing [ ... ] and whitespace
+            def clean_label(label):
+                if not label:
+                    return ""
+                return re.sub(r"\s*\[.*\]$", "", label).strip()
+
+            # Deduplicate by English label only
+            seen_en = set()
+            labels_list = []
+            for label in labels:
+                en_clean = clean_label(label.semantic_label_en)
+                fr_clean = clean_label(label.semantic_label_fr)
+                if en_clean.lower() not in seen_en:
+                    seen_en.add(en_clean.lower())
+                    labels_list.append({
+                        "EN": en_clean,
+                        "FR": fr_clean
+                    })
             
             return jsonify(labels_list), 200
-            
         except Exception as e:
-            app.logger.error(f"Error retrieving semantic labels: {str(e)}")
-            return jsonify({"error": "Failed to retrieve semantic labels"}), 500
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/terms/csv")
     def get_terms_csv() -> Response:
@@ -571,55 +580,6 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     #         return jsonify(results), 200
 
     #     except Exception as e:
-    #         app.logger.error(f"Search error: {str(e)}")
-    #         app.logger.error(f"Error type: {type(e)}")
-    #         return jsonify({"error": f"An error occurred during search: {str(e)}"}), 500
-
-    # @app.route("/api/terms/search", methods=["GET"])
-    # @cross_origin()
-    # def search_terms() -> Tuple[Response, int]:
-    #     """Public API endpoint for searching terms."""
-    #     query = request.args.get("q", "").lower().strip()
-    #     if not query:
-    #         return jsonify([]), 200
-
-    #     try:
-    #         # Debugging: Log the incoming query
-    #         app.logger.info(f"Search query received: '{query}'")
-
-    #         # Use SQLAlchemy's more efficient search capabilities
-    #         search_query = Term.query.filter(
-    #             db.or_(
-    #                 Term.english_term.ilike(f"%{query}%"),
-    #                 Term.french_term.ilike(f"%{query}%"),
-    #                 Term.domain_en.ilike(f"%{query}%"),
-    #                 Term.domain_fr.ilike(f"%{query}%"),
-    #                 Term.semantic_label_en.ilike(f"%{query}%"),
-    #                 Term.semantic_label_fr.ilike(f"%{query}%"),
-    #                 Term.definition_en.ilike(f"%{query}%"),
-    #                 Term.definition_fr.ilike(f"%{query}%"),
-    #             )
-    #         )
-
-    #         # Debugging: Log the SQL query
-    #         app.logger.info(f"Generated SQL query: {str(search_query)}")
-
-    #         # Debugging: Count total terms and matching terms
-    #         total_terms = Term.query.count()
-    #         matching_terms = search_query.count()
-
-    #         app.logger.info(f"Total terms in database: {total_terms}")
-    #         app.logger.info(f"Matching terms found: {matching_terms}")
-
-    #         results = [term.to_dict() for term in search_query.all()]
-
-    #         # Debugging: Log results
-    #         app.logger.info(f"Search results: {results}")
-
-    #         return jsonify(results), 200
-
-    #     except Exception as e:
-    #         # More detailed error logging
     #         app.logger.error(f"Search error: {str(e)}")
     #         app.logger.error(f"Error type: {type(e)}")
     #         import traceback
