@@ -146,10 +146,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         enDiv.id = `en-${termId}`;
         enDiv.innerHTML = `
           <p class="text-base md:text-lg font-medium text-gray-900 whitespace-normal break-words">
-            ${term.EN}
+            ${term.english_term}
           </p>
           <button class="view-details-btn ml-3 px-3 py-1 bg-[#296F9A] text-white rounded hover:bg-[#1d5272] transition-colors" 
-                  data-term-id="${term.id || index}" data-lang="en">
+                  data-term-index="${startIndex + index}" data-lang="en">
             View
           </button>
         `;
@@ -160,10 +160,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         frDiv.id = `fr-${termId}`;
         frDiv.innerHTML = `
           <p class="text-base md:text-lg font-medium text-gray-900 whitespace-normal break-words">
-            ${term.FR}
+            ${term.french_term}
           </p>
           <button class="view-details-btn ml-3 px-3 py-1 bg-[#A32A34] text-white rounded hover:bg-[#7a1f27] transition-colors" 
-                  data-term-id="${term.id || index}" data-lang="fr">
+                  data-term-index="${startIndex + index}" data-lang="fr">
             Voir
           </button>
         `;
@@ -215,101 +215,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Add event listeners for the view buttons
     document.addEventListener('click', async (event) => {
       if (event.target.classList.contains('view-details-btn')) {
-        const termId = event.target.getAttribute('data-term-id');
+        const termIndex = event.target.getAttribute('data-term-index');
         const lang = event.target.getAttribute('data-lang');
+        const termData = allTerms[termIndex];
+        if (!termData) return;
+
+        // Show the modal
+        const modal = document.getElementById('term-modal-container');
+        const modalTitle = document.getElementById('term-modal-title');
+        const modalBody = document.getElementById('term-modal-body');
         
-        try {
-          // Find the term in our existing data first
-          const termIndex = parseInt(termId);
-          let termData;
-          
-          // Check if we have a numeric index or an actual ID
-          if (!isNaN(termIndex) && termIndex >= 0 && termIndex < allTerms.length) {
-            // Use the term from our existing data
-            termData = allTerms[termIndex];
-            console.log("Using term from existing data:", termData);
-          } else {
-            // Try to fetch from API
-            console.log("Fetching term details from API for ID:", termId);
-            const response = await fetch(`/api/terms/${termId}`);
-            
-            if (!response.ok) {
-              console.error(`API error: ${response.status} ${response.statusText}`);
-              throw new Error(`API returned status: ${response.status}`);
-            }
-            
-            termData = await response.json();
-          }
-          
-          if (!termData) {
-            throw new Error('Term data not found');
-          }
-          
-          // Show the modal
-          const modal = document.getElementById('term-modal-container');
-          const modalTitle = document.getElementById('term-modal-title');
-          const modalBody = document.getElementById('term-modal-body');
-          
-          // Set title based on language
-          modalTitle.textContent = lang === 'en' ? 'Term Details' : 'Détails du Terme';
-          modalTitle.className = lang === 'en' ? 'text-2xl font-bold text-[#296F9A]' : 'text-2xl font-bold text-[#A32A34]';
-          
-          // Simplified modal content with just the essential information
-          modalBody.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <!-- English Column -->
-              <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-6 md:pb-0 md:pr-8">
-                <h4 class="font-bold text-xl text-[#296F9A] mb-4">English</h4>
-                <p class="mb-4 text-xl font-semibold">${termData.english_term || termData.EN || ''}</p>
-              </div>
-              
-              <!-- French Column -->
-              <div class="pt-6 md:pt-0 md:pl-8">
-                <h4 class="font-bold text-xl text-[#A32A34] mb-4">Français</h4>
-                <p class="mb-4 text-xl font-semibold">${termData.french_term || termData.FR || ''}</p>
-              </div>
-            </div>
-            
-            <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center">
-              <button id="close-details-btn" class="inline-block px-5 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
-                Close
-              </button>
-            </div>
-          `;
-          
-          // Add event listener to the close button in the modal
-          document.getElementById('close-details-btn')?.addEventListener('click', () => {
-            modal.style.display = 'none';
-          });
-          
-          // Show the modal
-          modal.style.display = 'flex';
-        } catch (error) {
-          console.error('Error fetching term details:', error);
-          
-          // Show error message
-          const modal = document.getElementById('term-modal-container');
-          const modalTitle = document.getElementById('term-modal-title');
-          const modalBody = document.getElementById('term-modal-body');
-          
-          modalTitle.textContent = 'Error';
-          modalTitle.className = 'text-2xl font-bold text-red-600';
-          
-          modalBody.innerHTML = `
-            <div class="text-center py-6">
-              <p class="text-lg text-red-600 mb-4">Failed to load term details</p>
-              <button id="error-close-btn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
-                Close
-              </button>
-            </div>
-          `;
-          
-          document.getElementById('error-close-btn').addEventListener('click', () => {
-            modal.style.display = 'none';
-          });
-          
-          modal.style.display = 'flex';
-        }
+        // Set title based on language
+        modalTitle.textContent = lang === 'en' ? 'Term Details' : 'Détails du Terme';
+        modalTitle.className = lang === 'en' ? 'text-2xl font-bold text-[#296F9A]' : 'text-2xl font-bold text-[#A32A34]';
+        
+        // Updated modal content with all details
+        const fields = getTermFields(termData);
+        modalBody.innerHTML = `
+          <div class="overflow-x-auto">
+            <table class="min-w-full table-auto">
+              <thead>
+                <tr>
+                  <th class="text-left text-xl text-[#296F9A] pb-4">English</th>
+                  <th class="text-left text-xl text-[#A32A34] pb-4">Français</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${fields.map(f => `
+                  <tr class="border-b border-gray-200">
+                    <td class="align-top pr-8 py-3">
+                      ${f.en
+                        ? `<span class="font-semibold">${f.label}:</span><div>${f.en}</div>`
+                        : ""}
+                    </td>
+                    <td class="align-top py-3">
+                      ${f.fr
+                        ? `<span class="font-semibold">${f.label_fr}:</span><div>${f.fr}</div>`
+                        : ""}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center">
+            <button id="close-details-btn" class="inline-block px-5 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+              Close
+            </button>
+          </div>
+        `;
+        document.getElementById('close-details-btn')?.addEventListener('click', () => {
+          modal.style.display = 'none';
+        });
+        modal.style.display = 'flex';
       }
     });
     
@@ -324,16 +282,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('term-modal-container').style.display = 'none';
       }
     });
-
-    // REMOVE THESE LINES (around line 350-355):
-    // Remove these conflicting lines
-    // modal.style.display = 'flex';  // Remove this line
-    // document.getElementById('term-modal-container').classList.add('hidden'); // Remove this line
-
-    // In the event handler for showing the modal:
-    // modal.style.display = 'flex';  // Replace modal.classList.remove('hidden');
-
-    // document.getElementById('term-modal-container').classList.add('hidden');
 
     // Replace the pagination container creation with:
     const paginationContainer = document.getElementById('pagination-container');
@@ -378,10 +326,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     paginationContainer.appendChild(nextButton);
 
-    // Add pagination to the page
-    // Remove this line since we're using the existing container
-    // document.querySelector('main').appendChild(paginationContainer);
-
     // Initial render
     renderPage(1);
 
@@ -389,6 +333,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Error fetching terms list:', error);
   }
 });
+
+function getTermFields(termData) {
+  const fieldMap = [
+    { key: 'domain', label: 'Domain', label_fr: 'Domaine' },
+    { key: 'subdomains', label: 'Subdomains', label_fr: 'Sous-domaines', isArray: true },
+    { key: 'semantic_label', label: 'Semantic Label', label_fr: 'Étiquette sémantique' },
+    { key: 'variant', label: 'Variant', label_fr: 'Variante' },
+    { key: 'synonym', label: 'Synonyms', label_fr: 'Synonymes' },
+    { key: 'near_synonym', label: 'Near Synonyms', label_fr: 'Quasi-synonymes' },
+    { key: 'definition', label: 'Definition', label_fr: 'Définition' },
+    { key: 'syntactic_cooccurrence', label: 'Syntactic Cooccurrence', label_fr: 'Cooccurrences syntaxiques', isArray: true },
+    { key: 'lexical_relations', label: 'Lexical Relations', label_fr: 'Relations lexicales', isLexical: true },
+    { key: 'note', label: 'Note', label_fr: 'Note' },
+    { key: 'not_to_be_confused_with', label: 'Not to be confused with', label_fr: 'À ne pas confondre avec', isArray: true },
+    { key: 'frequent_expression', label: 'Frequent Expression', label_fr: 'Expression fréquente', isArray: true },
+    { key: 'phraseology', label: 'Phraseology', label_fr: 'Phraséologie' },
+    { key: 'context', label: 'Context', label_fr: 'Contexte' },
+  ];
+
+  function renderValue(value, isArray, isLexical) {
+    if (isLexical && Array.isArray(value)) {
+      return `
+        <table class="table-auto text-sm w-full text-left whitespace-normal">
+          <tbody>
+            ${value.map(rel => {
+              const [k, v] = Object.entries(rel)[0];
+              return `<tr><th class="pr-2 font-normal">${k}</th><td>${Array.isArray(v) ? v.join(', ') : v}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+    if (isArray && Array.isArray(value)) {
+      return `<ul class="list-disc ml-5">${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    if (typeof value === 'object' && value !== null) {
+      return '';
+    }
+    return value;
+  }
+
+  // Build a list of fields with at least one non-empty value
+  return fieldMap
+    .map(f => {
+      const enValue = termData[`${f.key}_en`];
+      const frValue = termData[`${f.key}_fr`];
+      const hasEn = enValue && (!Array.isArray(enValue) || enValue.length > 0);
+      const hasFr = frValue && (!Array.isArray(frValue) || frValue.length > 0);
+      if (!hasEn && !hasFr) return null;
+      return {
+        label: f.label,
+        label_fr: f.label_fr,
+        en: renderValue(enValue, f.isArray, f.isLexical),
+        fr: renderValue(frValue, f.isArray, f.isLexical)
+      };
+    })
+    .filter(Boolean);
+}
 </script>
 
 {% endblock %}

@@ -391,23 +391,10 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     @app.route("/api/terms/list", methods=["GET"])
     def get_terms_list():
         try:
-            # Query only the english and french terms, ordered by english term
-            terms = db.session.query(
-                Term.english_term, 
-                Term.french_term
-            ).order_by(Term.english_term).all()
-            
-            # Format the results as requested
-            terms_list = [
-                {
-                    "EN": term.english_term,
-                    "FR": term.french_term
-                }
-                for term in terms
-            ]
-            
+            # Query all terms and return all details
+            terms = Term.query.all()
+            terms_list = [term.to_dict() for term in terms]
             return jsonify(terms_list), 200
-            
         except Exception as e:
             app.logger.error(f"Error retrieving terms list: {str(e)}")
             return jsonify({"error": "Failed to retrieve terms list"}), 500
