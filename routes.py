@@ -391,8 +391,8 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     @app.route("/api/terms/list", methods=["GET"])
     def get_terms_list():
         try:
-            # Query all terms and return all details
-            terms = Term.query.all()
+            # Query all terms and return all details, ordered by english_term
+            terms = Term.query.order_by(Term.english_term).all()
             terms_list = [term.to_dict() for term in terms]
             return jsonify(terms_list), 200
         except Exception as e:
