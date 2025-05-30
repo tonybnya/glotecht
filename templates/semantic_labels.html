@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const enDiv = document.createElement('div');
       enDiv.className = 'py-6 px-6 hover:bg-gray-50 min-h-[80px]';
       enDiv.innerHTML = `
-        <p class="text-base font-medium text-gray-900">
+        <p class="text-base font-medium text-gray-900 cursor-pointer hover:text-[#296F9A]" data-label="${encodeURIComponent(label.EN)}" data-lang="en">
           ${label.EN}
         </p>
       `;
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const frDiv = document.createElement('div');
       frDiv.className = 'py-6 px-6 hover:bg-gray-50 min-h-[80px]';
       frDiv.innerHTML = `
-        <p class="text-base font-medium text-gray-900">
+        <p class="text-base font-medium text-gray-900 cursor-pointer hover:text-[#A32A34]" data-label="${encodeURIComponent(label.FR)}" data-lang="fr">
           ${label.FR}
         </p>
       `;
@@ -181,9 +181,219 @@ document.addEventListener('DOMContentLoaded', async () => {
       englishContainer.appendChild(enDiv);
       frenchContainer.appendChild(frDiv);
     });
+
+    document.querySelectorAll('#english-labels p[data-label], #french-labels p[data-label]').forEach(el => {
+      el.addEventListener('click', async (event) => {
+        const label = decodeURIComponent(event.target.getAttribute('data-label'));
+        const lang = event.target.getAttribute('data-lang');
+        await showTermsForLabel(label, lang);
+      });
+    });
   } catch (error) {
     console.error('Error fetching semantic labels:', error);
   }
 });
+
+async function showTermsForLabel(label, lang) {
+  // Fetch all terms (or you can create a backend endpoint to filter by label)
+  const response = await fetch('/api/terms/list');
+  const allTerms = await response.json();
+
+  // Filter terms by semantic label
+  const filteredTerms = allTerms.filter(term =>
+    (lang === 'en'
+      ? (term.semantic_label_en && term.semantic_label_en.trim() === label)
+      : (term.semantic_label_fr && term.semantic_label_fr.trim() === label))
+  );
+
+  // Show the terms in a modal or below the label
+  showTermsModal(filteredTerms, lang, label);
+}
+
+function showTermsModal(terms, lang, label) {
+  // Create modal if not exists
+  let modal = document.getElementById('terms-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'terms-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold" id="terms-modal-title"></h3>
+          <button id="close-terms-modal" class="text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div id="terms-modal-body"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('close-terms-modal').onclick = () => {
+      modal.style.display = 'none';
+    };
+  }
+
+  document.getElementById('terms-modal-title').textContent = `Terms for "${label}" (${lang === 'en' ? 'English' : 'Français'})`;
+
+  // Render the list of terms
+  document.getElementById('terms-modal-body').innerHTML = terms.length === 0
+    ? '<p class="text-gray-500">No terms found for this label.</p>'
+    : `<ul>
+        ${terms.map((term, idx) => `
+          <li class="py-2 border-b border-gray-200">
+            <span class="cursor-pointer text-[#296F9A] hover:underline" data-term-index="${idx}">${lang === 'en' ? term.english_term : term.french_term}</span>
+          </li>
+        `).join('')}
+      </ul>`;
+
+  // Add click listeners to each term
+  document.querySelectorAll('#terms-modal-body [data-term-index]').forEach(el => {
+    el.addEventListener('click', () => {
+      showTermDetailModal(terms[el.getAttribute('data-term-index')]);
+    });
+  });
+
+  modal.style.display = 'flex';
+}
+
+function getTermFields(termData) {
+  const fieldMap = [
+    { key: 'domain', label: 'Domain', label_fr: 'Domaine' },
+    { key: 'subdomains', label: 'Subdomains', label_fr: 'Sous-domaines', isArray: true },
+    { key: 'semantic_label', label: 'Semantic Label', label_fr: 'Étiquette sémantique' },
+    { key: 'variant', label: 'Variant', label_fr: 'Variante' },
+    { key: 'synonym', label: 'Synonyms', label_fr: 'Synonymes' },
+    { key: 'near_synonym', label: 'Near Synonyms', label_fr: 'Quasi-synonymes' },
+    { key: 'definition', label: 'Definition', label_fr: 'Définition' },
+    { key: 'syntactic_cooccurrence', label: 'Syntactic Cooccurrence', label_fr: 'Cooccurrences syntaxiques', isArray: true },
+    { key: 'lexical_relations', label: 'Lexical Relations', label_fr: 'Relations lexicales', isLexical: true },
+    { key: 'note', label: 'Note', label_fr: 'Note' },
+    { key: 'not_to_be_confused_with', label: 'Not to be confused with', label_fr: 'À ne pas confondre avec', isArray: true },
+    { key: 'frequent_expression', label: 'Frequent Expression', label_fr: 'Expression fréquente', isArray: true },
+    { key: 'phraseology', label: 'Phraseology', label_fr: 'Phraséologie' },
+    { key: 'context', label: 'Context', label_fr: 'Contexte' },
+  ];
+
+  function renderValue(value, isArray, isLexical) {
+    if (isLexical && Array.isArray(value)) {
+      return `
+        <table class="table-auto text-sm w-full text-left whitespace-normal">
+          <tbody>
+            ${value.map(rel => {
+              const [k, v] = Object.entries(rel)[0];
+              return `<tr><th class="pr-2 font-normal">${k}</th><td>${Array.isArray(v) ? v.join(', ') : v}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+    if (isArray && Array.isArray(value)) {
+      return `<ul class="list-disc ml-5">${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    if (typeof value === 'object' && value !== null) {
+      return '';
+    }
+    return value;
+  }
+
+  // Build a list of fields with at least one non-empty value
+  return fieldMap
+    .map(f => {
+      const enValue = termData[`${f.key}_en`];
+      const frValue = termData[`${f.key}_fr`];
+      const hasEn = enValue && (!Array.isArray(enValue) || enValue.length > 0);
+      const hasFr = frValue && (!Array.isArray(frValue) || frValue.length > 0);
+      if (!hasEn && !hasFr) return null;
+      return {
+        label: f.label,
+        label_fr: f.label_fr,
+        en: renderValue(enValue, f.isArray, f.isLexical),
+        fr: renderValue(frValue, f.isArray, f.isLexical)
+      };
+    })
+    .filter(Boolean);
+}
+
+function showTermDetailModal(termData) {
+  // Hide the terms list modal if open
+  const termsModal = document.getElementById('terms-modal');
+  if (termsModal) termsModal.style.display = 'none';
+
+  // Remove existing term detail modal if present
+  let modal = document.getElementById('term-detail-modal');
+  if (modal) modal.remove();
+
+  // Create modal
+  modal = document.createElement('div');
+  modal.id = 'term-detail-modal';
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[95vh] overflow-y-auto p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold text-[#296F9A]">Term Details</h3>
+        <button id="close-term-detail-modal" class="text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full table-auto">
+          <thead>
+            <tr>
+              <th class="text-left text-xl text-[#296F9A] pb-4 w-1/2" style="width:50%;">English</th>
+              <th class="text-left text-xl text-[#A32A34] pb-4 w-1/2" style="width:50%;">Français</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-gray-200">
+              <td class="align-top pr-8 py-3 w-1/2" style="width:50%; vertical-align:top;">
+                <span class="font-semibold">English Term:</span>
+                <div>${termData.english_term || ''}</div>
+              </td>
+              <td class="align-top py-3 w-1/2" style="width:50%; vertical-align:top;">
+                <span class="font-semibold">Terme français:</span>
+                <div>${termData.french_term || ''}</div>
+              </td>
+            </tr>
+            ${getTermFields(termData).map(f => `
+              <tr class="border-b border-gray-200">
+                <td class="align-top pr-8 py-3 w-1/2" style="width:50%; vertical-align:top;">
+                  ${f.en
+                    ? `<span class="font-semibold">${f.label}:</span><div>${f.en}</div>`
+                    : ""}
+                </td>
+                <td class="align-top py-3 w-1/2" style="width:50%; vertical-align:top;">
+                  ${f.fr
+                    ? `<span class="font-semibold">${f.label_fr}:</span><div>${f.fr}</div>`
+                    : ""}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 pt-4 border-t border-gray-200 flex justify-center">
+        <button id="close-details-btn" class="inline-block px-5 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  document.getElementById('close-term-detail-modal').onclick = () => {
+    modal.style.display = 'none';
+  };
+  document.getElementById('close-details-btn').onclick = () => {
+    modal.style.display = 'none';
+  };
+}
 </script>
 {% endblock %}
