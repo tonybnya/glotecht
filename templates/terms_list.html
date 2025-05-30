@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="w-full h-full flex items-center justify-center p-4">
         <div id="term-modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[95vh] overflow-y-auto p-8">
           <div class="flex justify-between items-center mb-6">
-            <h3 class="text-2xl font-bold" id="term-modal-title">Term Details</h3>
+            <h3 class="text-2xl font-bold" id="term-modal-title">Details</h3>
             <button id="close-term-modal" class="text-gray-500 hover:text-gray-700">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -236,19 +236,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             <table class="min-w-full table-auto">
               <thead>
                 <tr>
-                  <th class="text-left text-xl text-[#296F9A] pb-4">English</th>
-                  <th class="text-left text-xl text-[#A32A34] pb-4">Français</th>
+                  <th class="text-left text-xl text-[#296F9A] pb-4 w-1/2" style="width:50%;">English</th>
+                  <th class="text-left text-xl text-[#A32A34] pb-4 w-1/2" style="width:50%;">Français</th>
                 </tr>
               </thead>
               <tbody>
+                <tr class="border-b border-gray-200">
+                  <td class="align-top pr-8 py-3 w-1/2" style="width:50%; vertical-align:top;">
+                    <span class="font-semibold">English Term:</span>
+                    <div>${termData.english_term || ''}</div>
+                  </td>
+                  <td class="align-top py-3 w-1/2" style="width:50%; vertical-align:top;">
+                    <span class="font-semibold">Terme français:</span>
+                    <div>${termData.french_term || ''}</div>
+                  </td>
+                </tr>
                 ${fields.map(f => `
                   <tr class="border-b border-gray-200">
-                    <td class="align-top pr-8 py-3">
+                    <td class="align-top pr-8 py-3 w-1/2" style="width:50%; vertical-align:top;">
                       ${f.en
                         ? `<span class="font-semibold">${f.label}:</span><div>${f.en}</div>`
                         : ""}
                     </td>
-                    <td class="align-top py-3">
+                    <td class="align-top py-3 w-1/2" style="width:50%; vertical-align:top;">
                       ${f.fr
                         ? `<span class="font-semibold">${f.label_fr}:</span><div>${f.fr}</div>`
                         : ""}
