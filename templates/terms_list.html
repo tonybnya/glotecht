@@ -376,7 +376,8 @@ function getTermFields(termData) {
       `;
     }
     if (isArray && Array.isArray(value)) {
-      return `<ul class="list-disc ml-5">${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
+      // return `<ul class="list-none ml-5">${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
+      return `<ul class="list-none ml-0 pl-0">${value.map(item => `<li>${item}</li>`).join('')}</ul>`;
     }
     if (Array.isArray(value)) {
       return value.join(', ');
