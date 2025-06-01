@@ -61,6 +61,7 @@ const TextFormatter = {
       replacement: '<span class="line-through">$1</span>',
     },
     b: { pattern: /\<b\>(.*?)\<\/b\>/g, replacement: "<strong>$1</strong>" },
+    sup: { pattern: /<sup>(.*?)<\/sup>/g, replacement: "<sup>$1</sup>" },
   },
 
   format(text) {

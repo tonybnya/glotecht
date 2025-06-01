@@ -1517,6 +1517,10 @@ input:checked + .toggle-bg {
   grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
+.flex-row {
+  flex-direction: row;
+}
+
 .flex-col {
   flex-direction: column;
 }
@@ -1690,8 +1694,17 @@ input:checked + .toggle-bg {
   border-bottom-width: 1px;
 }
 
+.border-b-4 {
+  border-bottom-width: 4px;
+}
+
 .border-t {
   border-top-width: 1px;
+}
+
+.border-\[\#296F9A\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(41 111 154 / var(--tw-border-opacity));
 }
 
 .border-\[\#A32A34\] {
