@@ -27,7 +27,7 @@
           <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
             <div class="mb-4 flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-bold text-[#296F9A] mb-2">Semantic Labels (EN)</h3>
+                <h3 class="text-xl font-bold text-[#296F9A] mb-2">Semantic Labels (EN) <span id="en-count" class="text-sm font-normal text-gray-500"></span></h3>
                 <span class="text-base font-normal text-gray-500">English semantic labels</span>
               </div>
             </div>
@@ -48,7 +48,7 @@
           <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
             <div class="mb-4 flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-bold text-[#A32A34] mb-2">Étiquettes Sémantiques (FR)</h3>
+                <h3 class="text-xl font-bold text-[#A32A34] mb-2">Étiquettes Sémantiques (FR) <span id="fr-count" class="text-sm font-normal text-gray-500"></span></h3>
                 <span class="text-base font-normal text-gray-500">Étiquettes sémantiques en français</span>
               </div>
             </div>
@@ -158,6 +158,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const englishContainer = document.getElementById('english-labels');
     const frenchContainer = document.getElementById('french-labels');
+    
+    // Update the count displays
+    document.getElementById('en-count').textContent = `(${data.length})`;
+    document.getElementById('fr-count').textContent = `(${data.length})`;
 
     data.forEach(label => {
       // Create English label element

@@ -27,7 +27,7 @@
           <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
             <div class="mb-4 flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-bold text-[#296F9A] mb-2">Terms List (EN)</h3>
+                <h3 class="text-xl font-bold text-[#296F9A] mb-2">Terms List (EN) <span id="en-count" class="text-sm font-normal text-gray-500"></span></h3>
                 <span class="text-base font-normal text-gray-500">English terms</span>
               </div>
             </div>
@@ -48,7 +48,7 @@
           <div class="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
             <div class="mb-4 flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-bold text-[#A32A34] mb-2">Liste des Termes (FR)</h3>
+                <h3 class="text-xl font-bold text-[#A32A34] mb-2">Liste des Termes (FR) <span id="fr-count" class="text-sm font-normal text-gray-500"></span></h3>
                 <span class="text-base font-normal text-gray-500">Termes en français</span>
               </div>
             </div>
@@ -126,6 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const englishContainer = document.getElementById('english-terms');
     const frenchContainer = document.getElementById('french-terms');
+    
+    // Update the count displays
+    document.getElementById('en-count').textContent = `(${allTerms.length})`;
+    document.getElementById('fr-count').textContent = `(${allTerms.length})`;
 
     function renderPage(pageNum) {
       englishContainer.innerHTML = '';
