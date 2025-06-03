@@ -215,8 +215,10 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             elif search_type == "synonym":
                 base_query = base_query.filter(
                     db.or_(
-                        db.cast(Term.near_synonym_en, db.String).ilike(f"%{query}%"),
-                        db.cast(Term.near_synonym_fr, db.String).ilike(f"%{query}%")
+                        Term.synonym_en.ilike(f"%{query}%"),
+                        Term.synonym_fr.ilike(f"%{query}%"),
+                        Term.near_synonym_en.ilike(f"%{query}%"),
+                        Term.near_synonym_fr.ilike(f"%{query}%")
                     )
                 )
             elif search_type == "subdomain":

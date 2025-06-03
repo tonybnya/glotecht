@@ -24,11 +24,6 @@ const CONFIG = {
       altField: "synonym_fr",
       exact: false
     },
-    near_synonym: { 
-      field: "near_synonym_en", 
-      altField: "near_synonym_fr",
-      exact: false
-    },
     subdomain: {
       field: "subdomains_en",
       altField: "subdomains_fr",
@@ -247,16 +242,6 @@ const TemplateRenderer = {
                 : ""
             }
             ${
-              fieldsToRender.near_synonym?.[lang]
-                ? this.renderField(
-                    labels.near_synonym,
-                    item[`near_synonym_${lang}`],
-                    false,
-                    `${fieldClass}-near_synonym`
-                  )
-                : ""
-            }
-            ${
               fieldsToRender.definition?.[lang]
                 ? this.renderField(
                     labels.definition,
@@ -412,16 +397,25 @@ const TemplateRenderer = {
 // Search functionality
 class SearchManager {
   constructor() {
+    console.log("SearchManager constructor called.");
     this.searchInput = document.getElementById("search-input");
     this.resultsContainer = document.getElementById("results");
     this.criteriaForm = document.getElementById("criteria-form");
     this.searchCriteria = document.getElementById("search-criteria");
     this.searchButton = document.getElementById("search-button");
+    console.log("DOM elements:", {
+      searchInput: !!this.searchInput,
+      resultsContainer: !!this.resultsContainer,
+      criteriaForm: !!this.criteriaForm,
+      searchCriteria: !!this.searchCriteria,
+      searchButton: !!this.searchButton,
+    });
+
     this.searchType = this.searchCriteria ? this.searchCriteria.value : "term";
     this.debounceTimeout = null;
 
     if (!this.searchInput || !this.resultsContainer) {
-      console.error("Required DOM elements are missing.");
+      console.error("Required DOM elements are missing. Search functionality will not initialize.");
       return;
     }
 
@@ -429,6 +423,7 @@ class SearchManager {
   }
 
   init() {
+    console.log("SearchManager init() called.");
     // Handle input changes with debounce
     this.searchInput.addEventListener("input", () => {
       clearTimeout(this.debounceTimeout);
@@ -442,6 +437,8 @@ class SearchManager {
     if (this.searchCriteria) {
       this.searchCriteria.addEventListener("change", (event) => {
         this.searchType = event.target.value;
+        console.log("Search criteria changed to:", this.searchType);
+        this.updatePlaceholder(); // Update placeholder on change
         // Don't auto-search on mobile when criteria changes
         if (window.innerWidth > 768) {
           this.performSearch();
@@ -452,6 +449,7 @@ class SearchManager {
     // Handle form submission
     if (this.criteriaForm) {
       this.criteriaForm.addEventListener("submit", (event) => {
+        console.log("Search form submitted.");
         event.preventDefault();
         this.performSearch();
       });
@@ -460,21 +458,62 @@ class SearchManager {
     // Add search button click handler
     if (this.searchButton) {
       this.searchButton.addEventListener("click", (event) => {
+        console.log("Search button clicked.");
         event.preventDefault();
         this.performSearch();
       });
     }
 
+    // Handle enter key in search input
+    this.searchInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        console.log("Enter key pressed in search input.");
+        event.preventDefault();
+        this.performSearch();
+      }
+    });
+
     // Make performSearch available globally for external calls
     window.performSearch = (type, term) => {
+      console.log("window.performSearch called with type:", type, "and term:", term);
       if (type) this.searchType = type;
       if (term) this.searchInput.value = term;
       this.performSearch();
     };
+
+    // Set initial placeholder
+    this.updatePlaceholder();
+  }
+
+  // Add method to update placeholder
+  updatePlaceholder() {
+    console.log("updatePlaceholder() called.");
+    const selectedValue = this.searchCriteria.value;
+    console.log("Selected search criteria value:", selectedValue);
+    let placeholderText = "Rechercher...";
+
+    switch (selectedValue) {
+      case 'term':
+        placeholderText = "Rechercher un terme..";
+        break;
+      case 'subdomain':
+        placeholderText = "Ex: Artificial Intelligence, Intelligence Artificielle...";
+        break;
+      case 'synonym':
+        placeholderText = "Ex: dataverse, métadonnées...";
+        break;
+      case 'relations': // Assuming 'relations' maps to semantic_label search type
+        placeholderText = "Ex: action sur les données, network attack...";
+        break;
+      default:
+        placeholderText = "Rechercher...";
+    }
+    this.searchInput.placeholder = placeholderText;
   }
 
   // Update the performSearch method in SearchManager class
   async performSearch() {
+    console.log("performSearch() called.");
     const searchTerm = this.searchInput.value.trim();
     if (!searchTerm) {
       this.resultsContainer.innerHTML = "";
@@ -529,6 +568,7 @@ class SearchManager {
   }
 
   displayResults(results, searchTerm) {
+    console.log("displayResults() called with results:", results, "for term:", searchTerm);
     if (results.length === 0) {
       this.resultsContainer.className =
         "w-full flex justify-center items-center min-h-[100px]";
@@ -568,8 +608,8 @@ class SearchManager {
         // Define field mappings with their corresponding API field names
         const fieldMappings = {
           variant: { en: "variant_en", fr: "variant_fr" },
-          near_synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
           synonym: { en: "synonym_en", fr: "synonym_fr" },
+          near_synonym: { en: "near_synonym_en", fr: "near_synonym_fr" },
           definition: { en: "definition_en", fr: "definition_fr" },
           syntactic: {
             en: "syntactic_cooccurrence_en",
@@ -745,7 +785,6 @@ class SearchManager {
       pageResults.forEach((item) => {
         const fields = [
           "variant",
-          "near_synonym",
           "synonym",
           "definition",
           "syntactic",
