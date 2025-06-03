@@ -194,7 +194,7 @@ const TemplateRenderer = {
 
     return `
       <div id="${id}" class="bg-white shadow-sm rounded-md text-md h-full w-full p-6 ${fieldClass}-${lang}">
-        <div class="flex flex-col items-start gap-1 mb-4">
+        <div class="term-header flex flex-col items-start gap-1 mb-4">
           <div class="w-full flex justify-between items-center">
             <h3 class="text-md max-sm:text-sm font-bold leading-none text-gray-500">
               <span class="text-[#A32A34] font-bold">${TextFormatter.format(
@@ -624,6 +624,17 @@ class SearchManager {
         `;
 
         this.resultsContainer.appendChild(resultContainer);
+
+        // Equalize header heights
+        const enHeader = resultContainer.querySelector('.term-header');
+        const frHeader = resultContainer.querySelectorAll('.term-header')[1];
+        if (enHeader && frHeader) {
+          enHeader.style.height = 'auto';
+          frHeader.style.height = 'auto';
+          const maxHeaderHeight = Math.max(enHeader.offsetHeight, frHeader.offsetHeight);
+          enHeader.style.height = `${maxHeaderHeight}px`;
+          frHeader.style.height = `${maxHeaderHeight}px`;
+        }
       });
 
       // Create pagination container
