@@ -27,6 +27,9 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_bcrypt import Bcrypt
+from sqlalchemy import func
+from sqlalchemy import exists, select
+from sqlalchemy import text
 
 from models import Term, User
 
@@ -217,13 +220,13 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
                     )
                 )
             elif search_type == "subdomain":
-                # Using JSON containment for array search
+                # For array fields in SQLite, use json_each with EXISTS and text() for explicit SQL
                 base_query = base_query.filter(
                     db.or_(
-                        Term.subdomains_en.contains([query]),
-                        Term.subdomains_fr.contains([query])
+                        exists(select(1).select_from(func.json_each(Term.subdomains_en)).where(text("lower(value) LIKE lower(:query)"))),
+                        exists(select(1).select_from(func.json_each(Term.subdomains_fr)).where(text("lower(value) LIKE lower(:query)")))
                     )
-                )
+                ).params(query=f"%{query}%") # Bind the query parameter once for both EXISTS clauses
 
             results = [term.to_dict() for term in base_query.all()]
             return jsonify(results), 200

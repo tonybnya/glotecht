@@ -32,7 +32,7 @@
           <option value="term">Terme</option>
           <option value="subdomain">Sous-domaine</option>
           <option value="synonym">Synonymie</option>
-          <option value="relations">Relations Lexicales</option>
+          <option value="relations">Classe sémantique</option>
         </select>
       </div>
 
@@ -183,8 +183,8 @@
         case 'synonym':
           searchInput.placeholder = "Ex: dataverse, métadonnées...";
           break;
-        case 'relations':
-          searchInput.placeholder = "Ex: action, processus...";
+        case 'semantic':
+          searchInput.placeholder = "Ex: action sur les données, network attack...";
           break;
         default:
           searchInput.placeholder = "Rechercher...";
