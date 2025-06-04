@@ -506,7 +506,7 @@ class SearchManager {
         placeholderText = "Ex: Artificial Intelligence, Intelligence Artificielle...";
         break;
       case 'synonym':
-        placeholderText = "Ex: dataverse, métadonnées...";
+        placeholderText = "Ex: metaverse, fork...";
         break;
       case 'relations': // Assuming 'relations' maps to semantic_label search type
         placeholderText = "Ex: action sur les données, network attack...";
