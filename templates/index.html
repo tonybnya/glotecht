@@ -2,7 +2,7 @@
 Blockchain - Intelligence Artificielle {% endblock %} {% block content %}
 <div
   class="min-h-screen font-inter bg-cover bg-center"
-  style="background-image: url('/img/bg-home.jpg')"
+  style="background-image: url('{{ url_for('static', filename='img/bg-home.jpg') }}')"
 >
   <!-- <header>
     <nav class="text-white px-4 lg:px-6 py-2.5 bg-gray-900">
@@ -34,7 +34,7 @@ Blockchain - Intelligence Artificielle {% endblock %} {% block content %}
 
   <section
     id="hero"
-    style="background-image: url('/img/bg-home.jpg')"
+    style="background-image: url('{{ url_for('static', filename='img/bg-home.jpg') }}')"
     class="text-white bg-gray-900 min-h-screen"
   >
     <div

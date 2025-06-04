@@ -29,8 +29,7 @@ def create_app() -> Flask:
     app: Flask = Flask(
         __name__,
         template_folder="templates",
-        static_folder="static",
-        static_url_path="/",
+        static_folder="static"
     )
 
     # Define a string for the SQLite database
