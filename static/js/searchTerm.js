@@ -500,7 +500,7 @@ class SearchManager {
 
     switch (selectedValue) {
       case 'term':
-        placeholderText = "Rechercher un terme..";
+        placeholderText = "Rechercher un terme...";
         break;
       case 'subdomain':
         placeholderText = "Ex: Artificial Intelligence, Intelligence Artificielle...";
