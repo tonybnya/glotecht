@@ -848,7 +848,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Author: DT | Source: GLOTECHT @2024</title>
+              <title>Author: DT | Source: GLOTECHT @${new Date().getFullYear()}</title>
               <style>
                 @media print {
                   @page {
