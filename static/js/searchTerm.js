@@ -24,6 +24,12 @@ const CONFIG = {
       altField: "synonym_fr",
       exact: false
     },
+    relations: { 
+      field: "semantic_label_en", 
+      altField: "semantic_label_fr",
+      exact: false,
+      backendType: "class"
+    },
     subdomain: {
       field: "subdomains_en",
       altField: "subdomains_fr",
@@ -540,7 +546,7 @@ class SearchManager {
 
       const params = new URLSearchParams({
         q: searchTerm,
-        type: this.searchType,
+        type: searchConfig.backendType || this.searchType,
         exact: searchConfig.exact || false,
         field: searchConfig.field,
         altField: searchConfig.altField,
