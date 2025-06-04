@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: glotecht
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:flask_app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false 
