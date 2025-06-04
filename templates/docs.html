@@ -7,7 +7,7 @@
     >
       <a href="/" class="flex items-center">
         <img
-          src="/img/brain.png"
+          src="{{ url_for('static', filename='img/brain.png') }}" 
           class="mr-3 h-6 sm:h-9"
           alt="DTechGloss Logo"
         />
@@ -22,7 +22,7 @@
   <section class="container mx-auto px-4 py-12">
     <div class="flex flex-col items-center justify-center">
       <img
-        src="/img/brain.png"
+        src="{{ url_for('static', filename='img/brain.png') }}" 
         class="h-20 saturate-200 animate-pulse drop-shadow-other brightness-50"
         alt="DTechGloss Logo"
       />
