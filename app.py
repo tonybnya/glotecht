@@ -72,4 +72,3 @@ def create_app() -> Flask:
     migrate: Migrate = Migrate(app, db)  # noqa: F841
 
     return app
-
