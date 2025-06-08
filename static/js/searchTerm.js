@@ -686,13 +686,17 @@ class SearchManager {
       // Create pagination container
       const paginationContainer = document.createElement('div');
       paginationContainer.id = 'search-pagination-container';
-      paginationContainer.className = 'flex justify-center items-center space-x-2 mt-6 mb-8 w-full';
+      paginationContainer.className = 'flex flex-col items-center space-y-2 mt-6 mb-8 w-full';
       
       // Add result counter
       const resultCounter = document.createElement('div');
-      resultCounter.className = 'text-sm text-gray-500 mr-4';
+      resultCounter.className = 'text-sm text-gray-500 mb-2';
       resultCounter.textContent = `Résultat ${currentPage} sur ${totalPages}`;
       paginationContainer.appendChild(resultCounter);
+
+      // Create pagination buttons container
+      const paginationButtons = document.createElement('div');
+      paginationButtons.className = 'flex justify-center items-center space-x-2';
       
       // Previous button
       const prevButton = document.createElement('button');
@@ -705,7 +709,7 @@ class SearchManager {
           renderPage(currentPage);
         }
       };
-      paginationContainer.appendChild(prevButton);
+      paginationButtons.appendChild(prevButton);
 
       // Page numbers - show limited page numbers with ellipsis for better UX
       const maxVisiblePages = 5;
@@ -726,14 +730,14 @@ class SearchManager {
           currentPage = 1;
           renderPage(currentPage);
         };
-        paginationContainer.appendChild(firstPageButton);
+        paginationButtons.appendChild(firstPageButton);
         
         // Add ellipsis if needed
         if (startPage > 2) {
           const ellipsis = document.createElement('span');
           ellipsis.textContent = '...';
           ellipsis.className = 'px-1';
-          paginationContainer.appendChild(ellipsis);
+          paginationButtons.appendChild(ellipsis);
         }
       }
       
@@ -747,7 +751,7 @@ class SearchManager {
           currentPage = i;
           renderPage(currentPage);
         };
-        paginationContainer.appendChild(pageButton);
+        paginationButtons.appendChild(pageButton);
       }
       
       // Last page button if not visible
@@ -757,7 +761,7 @@ class SearchManager {
           const ellipsis = document.createElement('span');
           ellipsis.textContent = '...';
           ellipsis.className = 'px-1';
-          paginationContainer.appendChild(ellipsis);
+          paginationButtons.appendChild(ellipsis);
         }
         
         const lastPageButton = document.createElement('button');
@@ -768,7 +772,7 @@ class SearchManager {
           currentPage = totalPages;
           renderPage(currentPage);
         };
-        paginationContainer.appendChild(lastPageButton);
+        paginationButtons.appendChild(lastPageButton);
       }
 
       // Next button
@@ -782,7 +786,10 @@ class SearchManager {
           renderPage(currentPage);
         }
       };
-      paginationContainer.appendChild(nextButton);
+      paginationButtons.appendChild(nextButton);
+
+      // Add pagination buttons to the container
+      paginationContainer.appendChild(paginationButtons);
 
       // Add pagination to the page
       document.getElementById('main-content').appendChild(paginationContainer);
