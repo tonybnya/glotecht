@@ -121,23 +121,6 @@ const TemplateRenderer = {
         </div>
       </li>`;
   },
-  // renderField(label, value) {
-  //   if (!value || (Array.isArray(value) && value.length === 0)) return '';
-
-  //   const content = Array.isArray(value)
-  //     ? value.map(item => `<span class="mb-0 text-sm">${TextFormatter.format(item) || '<br />'}</span>`).join('')
-  //     : `<p class="text-sm font-normal text-gray-900">${TextFormatter.format(value)}</p>`;
-
-  //   return `
-  //     <li class="py-3 sm:py-4">
-  //       <div class="flex items-center space-x-4">
-  //         <div class="flex-1 min-w-0">
-  //           <p class="text-sm text-[#296F9A] font-bold">${label}</p>
-  //           ${content}
-  //         </div>
-  //       </div>
-  //     </li>`;
-  // },
 
   renderLexicalRelations(label, relations) {
     if (!relations?.length) return "";
