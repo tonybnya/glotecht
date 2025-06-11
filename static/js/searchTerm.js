@@ -231,6 +231,16 @@ const TemplateRenderer = {
                 : ""
             }
             ${
+              fieldsToRender.near_synonym?.[lang]
+                ? this.renderField(
+                    labels.near_synonym,
+                    item[`near_synonym_${lang}`],
+                    false,
+                    `${fieldClass}-near_synonym`
+                  )
+                : ""
+            }
+            ${
               fieldsToRender.definition?.[lang]
                 ? this.renderField(
                     labels.definition,
