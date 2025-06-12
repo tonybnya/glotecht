@@ -124,6 +124,7 @@ class TermAdminView(SecureModelView):
         "french_term",
         "subdomains_en",
         "subdomains_fr",
+        "is_active",
     ]
     column_searchable_list = ["english_term", "french_term", "domain_en", "domain_fr"]
     column_filters = [
@@ -196,7 +197,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
             return jsonify([]), 200
 
         try:
-            base_query = Term.query
+            base_query = Term.query.filter(Term.is_active == True)
 
             if search_type == "term":
                 base_query = base_query.filter(
@@ -306,13 +307,13 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         Get all terms from the glossary database.
         Public endpoint - no authentication required.
         """
-        terms = Term.query.all()
+        terms = Term.query.filter(Term.is_active == True).all()
         return jsonify([term.to_dict() for term in terms]), 200
 
     @app.route("/api/terms/xml", methods=["GET"])
     def get_terms_xml() -> Response:
         """Get all terms in XML format."""
-        terms = Term.query.all()
+        terms = Term.query.filter(Term.is_active == True).all()
         
         # Create XML structure
         xml_data = ['<?xml version="1.0" encoding="UTF-8"?>']
@@ -397,7 +398,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     def get_terms_list():
         try:
             # Query all terms and return all details, ordered by english_term
-            terms = Term.query.order_by(Term.english_term).all()
+            terms = Term.query.filter(Term.is_active == True).order_by(Term.english_term).all()
             terms_list = [term.to_dict() for term in terms]
             return jsonify(terms_list), 200
         except Exception as e:
@@ -442,7 +443,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
     @app.route("/api/terms/csv")
     def get_terms_csv() -> Response:
         """Get all terms in CSV format."""
-        terms = Term.query.all()
+        terms = Term.query.filter(Term.is_active == True).all()
         
         # Convert to list of dictionaries
         terms_list = [term.to_dict() for term in terms]
@@ -479,7 +480,7 @@ def register_routes(app: Flask, db: SQLAlchemy, bcrypt: Bcrypt) -> None:
         """
         try:
             # Fetch the Term with the given term ID
-            term = Term.query.get(tid)
+            term = Term.query.filter_by(tid=tid, is_active=True).first()
             if not term:
                 return jsonify({"error": f"Term with ID {tid} not found."}), 404
 
