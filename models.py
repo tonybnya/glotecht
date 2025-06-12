@@ -179,6 +179,8 @@ class Term(db.Model):
     context_en: str = db.Column(db.Text)
     context_fr: str = db.Column(db.Text)
 
+    is_active: bool = db.Column(db.Boolean, default=True, nullable=False)
+
     __table_args__ = (
         db.UniqueConstraint("english_term", "french_term", name="unique_terms"),
     )
@@ -246,4 +248,6 @@ class Term(db.Model):
             # separator
             "context_en": self.context_en,
             "context_fr": self.context_fr,
+            # separator
+            "is_active": self.is_active,
         }
